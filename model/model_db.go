@@ -9,6 +9,7 @@ import (
 
 var EvmTables = []any{
 	&Address{}, &Block{}, &Tx{}, &Trace{}, &ContractLifecycle{},
+	&Topic{}, &LogParam{}, &Log{},
 }
 
 type Model struct {
@@ -67,6 +68,29 @@ type ContractLifecycle struct {
 	Event               string          `gorm:"not null" json:"event"`
 	RefundAddrId        uint64          `gorm:"not null" json:"refundAddrId"`
 	Value               decimal.Decimal `gorm:"type:decimal(36,18);not null" json:"value"`
+}
+
+type Topic struct {
+	Model
+	Topic string `gorm:"size:66;not null;unique" json:"topic"`
+}
+type LogParam struct {
+	Model
+	Hex string `gorm:"size:66;not null;unique" json:"topic"`
+}
+
+type Log struct {
+	Model
+	BlockId    uint64 `gorm:"not null" json:"blockId"`
+	TxIndex    uint   `gorm:"not null" json:"txIndex"`
+	TxId       uint64 `gorm:"not null" json:"txId"`
+	ContractId uint64 `gorm:"not null" json:"contractId"`
+	TopicId    uint64 `gorm:"not null" json:"topicId"`
+	// refer to LogParam
+	Param1 uint64 `gorm:"not null" json:"param1"`
+	Param2 uint64 `gorm:"not null" json:"param2"`
+	Param3 uint64 `gorm:"not null" json:"param3"`
+	Count  uint   `gorm:"not null" json:"count"`
 }
 
 const (
