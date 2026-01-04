@@ -22,11 +22,12 @@ type TraceProcessor struct {
 }
 
 type TraceOperation struct {
-	dbBlock   *model.Block
-	minerAddr *model.Address
-	traceArr  []*model.Trace
-	txArr     []*model.Tx
-	Err       error
+	dbBlock              *model.Block
+	minerAddr            *model.Address
+	traceArr             []*model.Trace
+	txArr                []*model.Tx
+	contractLifecycleArr []*model.ContractLifecycle
+	Err                  error
 }
 
 func newErrOperation(err error) *TraceOperation {
@@ -70,6 +71,12 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	if len(o.txArr) > 0 {
 		if err := tx.Create(&o.traceArr).Error; err != nil {
 			return errors.Wrap(err, "create trace")
+		}
+	}
+
+	if len(o.txArr) > 0 {
+		if err := tx.Create(&o.contractLifecycleArr).Error; err != nil {
+			return errors.Wrap(err, "create contract lifecycle")
 		}
 	}
 
@@ -187,10 +194,11 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 	}
 
 	return &TraceOperation{
-		dbBlock:   &dbBlock,
-		minerAddr: &dbAddr,
-		traceArr:  traceArr,
-		txArr:     txArr,
+		dbBlock:              &dbBlock,
+		minerAddr:            &dbAddr,
+		traceArr:             traceArr,
+		txArr:                txArr,
+		contractLifecycleArr: contractLifecycleArr,
 	}
 }
 
