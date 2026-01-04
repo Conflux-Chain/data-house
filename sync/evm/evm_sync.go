@@ -74,7 +74,7 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 		}
 	}
 
-	if len(o.txArr) > 0 {
+	if len(o.contractLifecycleArr) > 0 {
 		if err := tx.Create(&o.contractLifecycleArr).Error; err != nil {
 			return errors.Wrap(err, "create contract lifecycle")
 		}
