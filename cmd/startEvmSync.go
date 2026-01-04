@@ -11,7 +11,6 @@ import (
 	"github.com/Conflux-Chain/go-conflux-util/store"
 	"github.com/Conflux-Chain/go-conflux-util/viper"
 	"github.com/sirupsen/logrus"
-
 	"github.com/spf13/cobra"
 )
 
