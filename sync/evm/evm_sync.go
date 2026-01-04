@@ -308,6 +308,9 @@ func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.T
 			return nil, err
 		}
 		tx := &model.Tx{
+			Model: model.Model{
+				CreatedAt: blockTime,
+			},
 			FromId: fromAddr.ID,
 			ToId:   toAddr.ID,
 			Hash:   receipt.TransactionHash.Hex(),
