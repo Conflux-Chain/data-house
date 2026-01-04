@@ -1,9 +1,10 @@
 package model
 
 import (
+	"time"
+
 	"github.com/openweb3/web3go/types"
 	"github.com/shopspring/decimal"
-	"time"
 )
 
 var EvmTables = []any{

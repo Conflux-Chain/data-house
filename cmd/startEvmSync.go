@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"sync"
+
 	"github.com/Conflux-Chain/data-house/common"
 	"github.com/Conflux-Chain/data-house/model"
 	"github.com/Conflux-Chain/data-house/sync/evm"
@@ -9,7 +11,6 @@ import (
 	"github.com/Conflux-Chain/go-conflux-util/store"
 	"github.com/Conflux-Chain/go-conflux-util/viper"
 	"github.com/sirupsen/logrus"
-	"sync"
 
 	"github.com/spf13/cobra"
 )

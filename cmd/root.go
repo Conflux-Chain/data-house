@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/Conflux-Chain/go-conflux-util/config"
-	"github.com/Conflux-Chain/go-conflux-util/log"
 	"os"
 
+	"github.com/Conflux-Chain/go-conflux-util/config"
+	"github.com/Conflux-Chain/go-conflux-util/log"
 	"github.com/spf13/cobra"
 )
 
