@@ -201,7 +201,11 @@ func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.T
 		if err != nil {
 			return nil, err
 		}
-		toAddr, err := model.MakeAddrId(db, receipt.To.Hex(), blockTime)
+		to := receipt.To
+		if to == nil {
+			to = receipt.ContractAddress
+		}
+		toAddr, err := model.MakeAddrId(db, to.Hex(), blockTime)
 		if err != nil {
 			return nil, err
 		}
