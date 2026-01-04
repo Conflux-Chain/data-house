@@ -60,12 +60,13 @@ type Trace struct {
 
 type ContractLifecycle struct {
 	Model
-	TxId         uint64          `gorm:"not null" json:"txId"`
-	TxSenderId   uint64          `gorm:"not null" json:"txSenderId"`
-	ContractId   uint64          `gorm:"not null" json:"contractId"`
-	Event        string          `gorm:"not null" json:"event"`
-	RefundAddrId uint64          `gorm:"not null" json:"refundAddrId"`
-	Value        decimal.Decimal `gorm:"type:decimal(36,18);not null" json:"value"`
+	TxId                uint64          `gorm:"not null" json:"txId"`
+	TransactionPosition uint            `json:"transactionPosition"`
+	TxSenderId          uint64          `gorm:"not null" json:"txSenderId"`
+	ContractId          uint64          `gorm:"not null" json:"contractId"`
+	Event               string          `gorm:"not null" json:"event"`
+	RefundAddrId        uint64          `gorm:"not null" json:"refundAddrId"`
+	Value               decimal.Decimal `gorm:"type:decimal(36,18);not null" json:"value"`
 }
 
 const (

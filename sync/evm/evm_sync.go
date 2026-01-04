@@ -75,6 +75,9 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	}
 
 	if len(o.contractLifecycleArr) > 0 {
+		for _, lifecycle := range o.contractLifecycleArr {
+			lifecycle.TxId = o.txArr[lifecycle.TransactionPosition].ID
+		}
 		if err := tx.Create(&o.contractLifecycleArr).Error; err != nil {
 			return errors.Wrap(err, "create contract lifecycle")
 		}
@@ -159,10 +162,11 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 				Model: model.Model{
 					CreatedAt: dbBlock.CreatedAt,
 				},
-				TxSenderId: txArr[*trace.TransactionPosition].FromId,
-				ContractId: dbTrace.ToId,
-				Value:      decimal.NewFromBigInt(create.Value, -18),
-				Event:      model.ContractLifecycleCreate,
+				TransactionPosition: *trace.TransactionPosition,
+				TxSenderId:          txArr[*trace.TransactionPosition].FromId,
+				ContractId:          dbTrace.ToId,
+				Value:               decimal.NewFromBigInt(create.Value, -18),
+				Event:               model.ContractLifecycleCreate,
 			})
 		case types.TRACE_SUICIDE:
 			suicide, _ := trace.Action.(types.Suicide)
