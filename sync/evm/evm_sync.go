@@ -47,7 +47,9 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	o.dbBlock.MinerID = addrPre.ID
 
 	//save block
-	tx.Create(&o.dbBlock)
+	if err := tx.Create(&o.dbBlock).Error; err != nil {
+		return errors.Wrap(err, "create block failed")
+	}
 
 	// update block id for tx record
 	for _, txPO := range o.txArr {
