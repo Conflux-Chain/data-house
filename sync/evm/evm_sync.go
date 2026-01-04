@@ -22,11 +22,12 @@ type TraceProcessor struct {
 }
 
 type TraceOperation struct {
-	dbBlock   *model.Block
-	minerAddr *model.Address
-	traceArr  []*model.Trace
-	txArr     []*model.Tx
-	Err       error
+	dbBlock              *model.Block
+	minerAddr            *model.Address
+	traceArr             []*model.Trace
+	txArr                []*model.Tx
+	contractLifecycleArr []*model.ContractLifecycle
+	Err                  error
 }
 
 func newErrOperation(err error) *TraceOperation {
@@ -47,7 +48,9 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	o.dbBlock.MinerID = addrPre.ID
 
 	//save block
-	tx.Create(&o.dbBlock)
+	if err := tx.Create(&o.dbBlock).Error; err != nil {
+		return errors.Wrap(err, "create block failed")
+	}
 
 	// update block id for tx record
 	for _, txPO := range o.txArr {
@@ -68,6 +71,15 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	if len(o.txArr) > 0 {
 		if err := tx.Create(&o.traceArr).Error; err != nil {
 			return errors.Wrap(err, "create trace")
+		}
+	}
+
+	if len(o.contractLifecycleArr) > 0 {
+		for _, lifecycle := range o.contractLifecycleArr {
+			lifecycle.TxId = o.txArr[lifecycle.TransactionPosition].ID
+		}
+		if err := tx.Create(&o.contractLifecycleArr).Error; err != nil {
+			return errors.Wrap(err, "create contract lifecycle")
 		}
 	}
 
@@ -150,10 +162,11 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 				Model: model.Model{
 					CreatedAt: dbBlock.CreatedAt,
 				},
-				TxSenderId: txArr[*trace.TransactionPosition].FromId,
-				ContractId: dbTrace.ToId,
-				Value:      decimal.NewFromBigInt(create.Value, -18),
-				Event:      model.ContractLifecycleCreate,
+				TransactionPosition: *trace.TransactionPosition,
+				TxSenderId:          txArr[*trace.TransactionPosition].FromId,
+				ContractId:          dbTrace.ToId,
+				Value:               decimal.NewFromBigInt(create.Value, -18),
+				Event:               model.ContractLifecycleCreate,
 			})
 		case types.TRACE_SUICIDE:
 			suicide, _ := trace.Action.(types.Suicide)
@@ -185,10 +198,11 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 	}
 
 	return &TraceOperation{
-		dbBlock:   &dbBlock,
-		minerAddr: &dbAddr,
-		traceArr:  traceArr,
-		txArr:     txArr,
+		dbBlock:              &dbBlock,
+		minerAddr:            &dbAddr,
+		traceArr:             traceArr,
+		txArr:                txArr,
+		contractLifecycleArr: contractLifecycleArr,
 	}
 }
 
@@ -199,7 +213,11 @@ func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.T
 		if err != nil {
 			return nil, err
 		}
-		toAddr, err := model.MakeAddrId(db, receipt.To.Hex(), blockTime)
+		to := receipt.To
+		if to == nil {
+			to = receipt.ContractAddress
+		}
+		toAddr, err := model.MakeAddrId(db, to.Hex(), blockTime)
 		if err != nil {
 			return nil, err
 		}
