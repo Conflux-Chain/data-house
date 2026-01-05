@@ -17,6 +17,10 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	TxStatusSuccess = uint64(1)
+)
+
 type TraceProcessor struct {
 	db *gorm.DB
 }
@@ -295,22 +299,37 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.Time) ([]*model.Tx, error) {
 	var txArr []*model.Tx
 	for _, receipt := range receipts {
+		if receipt.Status == nil {
+			return nil, fmt.Errorf("receipt status is nil, tx hash %v", receipt.TransactionHash.Hex())
+		}
+
 		fromAddr, err := model.MakeAddrId(db, receipt.From.Hex(), blockTime)
 		if err != nil {
 			return nil, err
 		}
+
 		to := receipt.To
+		failedToCreate := false
 		if to == nil {
 			to = receipt.ContractAddress
+			if to == nil && *receipt.Status != TxStatusSuccess {
+				failedToCreate = true
+			}
 		}
-		if to == nil {
+		toHex := ""
+		if failedToCreate {
+			// it's ok
+		} else if to == nil {
 			return nil, fmt.Errorf("invalid receipt address, block %v, tx %v, field %v %v",
 				receipt.BlockNumber, receipt.TransactionHash.Hex(), receipt.To, receipt.ContractAddress)
+		} else {
+			toHex = to.Hex()
 		}
-		toAddr, err := model.MakeAddrId(db, to.Hex(), blockTime)
+		toAddr, err := model.MakeAddrId(db, toHex, blockTime)
 		if err != nil {
 			return nil, err
 		}
+
 		tx := &model.Tx{
 			Model: model.Model{
 				CreatedAt: blockTime,
