@@ -26,8 +26,6 @@ func init() {
 }
 
 func start(*cobra.Command, []string) {
-	logrus.Info("Starting evm sync ...")
-
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
@@ -37,8 +35,15 @@ func start(*cobra.Command, []string) {
 	var config common.EvmConfig
 	viper.MustUnmarshalKey("evm", &config)
 
-	if err := evm.StartSync(ctx, &wg, &config, db); err != nil {
-		logrus.WithError(err).Fatal("failed to start evm sync")
+	logrus.WithField("batch", config.Batch).Info("Starting evm sync ...")
+	if config.Batch {
+		if err := evm.StartSyncBatch(ctx, &wg, &config, db); err != nil {
+			logrus.Fatal(err)
+		}
+	} else {
+		if err := evm.StartSync(ctx, &wg, &config, db); err != nil {
+			logrus.WithError(err).Fatal("failed to start evm sync")
+		}
 	}
 	logrus.Info("Evm sync started")
 

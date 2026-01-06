@@ -9,6 +9,7 @@ import (
 
 	"github.com/Conflux-Chain/data-house/common"
 	"github.com/Conflux-Chain/data-house/model"
+	syncUtil "github.com/Conflux-Chain/go-conflux-util/blockchain/sync"
 	evmUtil "github.com/Conflux-Chain/go-conflux-util/blockchain/sync/evm"
 	dbUtil "github.com/Conflux-Chain/go-conflux-util/blockchain/sync/process/db"
 	"github.com/openweb3/web3go/types"
@@ -221,7 +222,7 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 	for index, trace := range data.Traces {
 		dbTrace := model.Trace{
 			TraceIndex:          index,
-			TraceType:           trace.Type,
+			TraceType:           string(trace.Type),
 			Valid:               *trace.Valid,
 			TransactionPosition: *trace.TransactionPosition,
 			//Type: trace.Action
@@ -331,13 +332,15 @@ func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.T
 		}
 
 		tx := &model.Tx{
-			Model: model.Model{
-				CreatedAt: blockTime,
+			BaseTx: model.BaseTx{
+				Model: model.Model{
+					CreatedAt: blockTime,
+				},
+				FromId: fromAddr.ID,
+				ToId:   toAddr.ID,
+				Hash:   receipt.TransactionHash.Hex(),
+				Status: uint(*receipt.Status),
 			},
-			FromId: fromAddr.ID,
-			ToId:   toAddr.ID,
-			Hash:   receipt.TransactionHash.Hex(),
-			Status: uint(*receipt.Status),
 		}
 		txArr = append(txArr, tx)
 	}
@@ -345,19 +348,111 @@ func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.T
 }
 
 func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig, db *gorm.DB) error {
-	var utilCfg = evmCfg.Config
+	var paramsDB = evmCfg.ParamsDB
 	processor := &TraceProcessor{
 		db: db,
 	}
+	nextBlockNumber, err := calculateNextBlockNo(db, evmCfg)
+	if err != nil {
+		return err
+	}
+	paramsDB.NextBlockNumber = nextBlockNumber
+	paramsDB.DB = db
+	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.AdapterConfig)
+	if errAd != nil {
+		return errAd
+	}
+	paramsDB.Adapter = adapter
+
+	syncUtil.StartFinalizedDB(ctx, wg, paramsDB, processor)
+
+	return nil
+}
+
+func calculateNextBlockNo(db *gorm.DB, evmCfg *common.EvmConfig) (uint64, error) {
 	var dbBlock model.Block
 	if err := db.Order("id desc").First(&dbBlock).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			dbBlock.ID = evmCfg.FirstBlock - 1
 		} else {
-			return errors.WithMessage(err, "Failed to get last block in DB")
+			return 0, errors.WithMessage(err, "Failed to get last block in DB")
 		}
 	}
 	nextBlockNumber := dbBlock.ID + 1
+	return nextBlockNumber, nil
+}
 
-	return evmUtil.StartFinalizedDB(ctx, wg, utilCfg, db, nextBlockNumber, processor)
+type BatchProcessor struct {
+	TraceProcessor
+	TraceOpArr  []*TraceOperation
+	StopAtBlock uint64
+	Stopped     bool
+}
+
+func (p *BatchProcessor) BatchProcess(data evmUtil.BlockData) int {
+	failFastFlag := 90_0000
+	if data.Block.Number.Uint64() > p.StopAtBlock {
+		p.Stopped = true
+		return failFastFlag
+	}
+
+	dbOp := p.Process(data).(*TraceOperation)
+	if dbOp.Err != nil {
+		return failFastFlag // fulfill batch and fail fast
+	}
+	p.TraceOpArr = append(p.TraceOpArr, dbOp)
+	beanCount := 1 +
+		len(dbOp.contractLifecycleArr) +
+		len(dbOp.txArr) +
+		len(dbOp.logArr) +
+		len(dbOp.traceArr)
+
+	return beanCount
+}
+
+func (p *BatchProcessor) BatchExec(tx *gorm.DB, _ int) error {
+	if p.Stopped && len(p.TraceOpArr) == 0 {
+		return fmt.Errorf("batch processor stopped at block %d", p.StopAtBlock)
+	}
+	for _, op := range p.TraceOpArr {
+		if err := op.Exec(tx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *BatchProcessor) BatchReset() {
+	p.TraceOpArr = nil
+}
+
+func StartSyncBatch(ctx context.Context, _ *sync.WaitGroup, evmCfg *common.EvmConfig, db *gorm.DB) error {
+	processor := &BatchProcessor{
+		TraceProcessor: TraceProcessor{
+			db: db,
+		},
+	}
+	nextBlockNumber, err := calculateNextBlockNo(db, evmCfg)
+	if err != nil {
+		return err
+	}
+	evmCfg.CatchupParamsDB.NextBlockNumber = nextBlockNumber
+
+	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.AdapterConfig)
+	if errAd != nil {
+		return errAd
+	}
+
+	finalizedBlock, errF := adapter.GetFinalizedBlockNumber(ctx)
+	if errF != nil {
+		return errF
+	}
+	processor.StopAtBlock = finalizedBlock
+	evmCfg.CatchupParamsDB.Adapter = adapter
+	evmCfg.CatchupParamsDB.DB = db
+
+	syncUtil.CatchUpDB(ctx, evmCfg.CatchupParamsDB, processor)
+
+	return nil
 }
