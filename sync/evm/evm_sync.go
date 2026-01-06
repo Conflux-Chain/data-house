@@ -349,15 +349,99 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig
 	processor := &TraceProcessor{
 		db: db,
 	}
+	nextBlockNumber, err := calculateNextBlockNo(db, evmCfg)
+	if err != nil {
+		return err
+	}
+
+	return evmUtil.StartFinalizedDB(ctx, wg, utilCfg, db, nextBlockNumber, processor)
+}
+
+func calculateNextBlockNo(db *gorm.DB, evmCfg *common.EvmConfig) (uint64, error) {
 	var dbBlock model.Block
 	if err := db.Order("id desc").First(&dbBlock).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			dbBlock.ID = evmCfg.FirstBlock - 1
 		} else {
-			return errors.WithMessage(err, "Failed to get last block in DB")
+			return 0, errors.WithMessage(err, "Failed to get last block in DB")
 		}
 	}
 	nextBlockNumber := dbBlock.ID + 1
+	return nextBlockNumber, nil
+}
 
-	return evmUtil.StartFinalizedDB(ctx, wg, utilCfg, db, nextBlockNumber, processor)
+type BatchProcessor struct {
+	TraceProcessor
+	TraceOpArr  []*TraceOperation
+	StopAtBlock uint64
+	Stopped     bool
+}
+
+func (p *BatchProcessor) BatchProcess(data evmUtil.BlockData) int {
+	failFastFlag := 90_0000
+	if data.Block.Number.Uint64() > p.StopAtBlock {
+		p.Stopped = true
+		return failFastFlag
+	}
+
+	dbOp := p.Process(data).(*TraceOperation)
+	if dbOp.Err != nil {
+		return failFastFlag // fulfill batch and fail fast
+	}
+	p.TraceOpArr = append(p.TraceOpArr, dbOp)
+	beanCount := 1 +
+		len(dbOp.contractLifecycleArr) +
+		len(dbOp.txArr) +
+		len(dbOp.logArr) +
+		len(dbOp.traceArr)
+
+	return beanCount
+}
+
+func (p *BatchProcessor) BatchExec(tx *gorm.DB, createBatchSize int) error {
+	if p.Stopped && len(p.TraceOpArr) == 0 {
+		return fmt.Errorf("batch processor stopped at block %d", p.StopAtBlock)
+	}
+	for _, op := range p.TraceOpArr {
+		if err := op.Exec(tx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (p *BatchProcessor) BatchReset() {
+	p.TraceOpArr = nil
+}
+
+func StartSyncBatch(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig, db *gorm.DB) error {
+	processor := &BatchProcessor{
+		TraceProcessor: TraceProcessor{
+			db: db,
+		},
+	}
+	nextBlockNumber, err := calculateNextBlockNo(db, evmCfg)
+	if err != nil {
+		return err
+	}
+
+	if evmCfg.CatchUpConfig.Adapter.URL == "" {
+		evmCfg.CatchUpConfig.Adapter.URL = evmCfg.Config.Adapter.URL
+	}
+
+	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.CatchUpConfig.Adapter)
+	if errAd != nil {
+		return errAd
+	}
+
+	finalizedBlock, errF := adapter.GetFinalizedBlockNumber(ctx)
+	if errF != nil {
+		return errF
+	}
+	processor.StopAtBlock = finalizedBlock
+
+	_, err = evmUtil.CatchUpDB(ctx, evmCfg.CatchUpConfig, db, nextBlockNumber, processor)
+
+	return err
 }
