@@ -6,4 +6,5 @@ type EvmConfig struct {
 	FirstBlock uint64
 	evm.Config
 	evm.CatchUpConfig
+	Batch bool
 }
