@@ -3,12 +3,16 @@ package model
 import (
 	"time"
 
-	"github.com/openweb3/web3go/types"
 	"github.com/shopspring/decimal"
 )
 
 var EvmTables = []any{
 	&Address{}, &Block{}, &Tx{}, &Trace{}, &ContractLifecycle{},
+	&Topic{}, &LogParam{}, &Log{},
+}
+
+var CfxTables = []any{
+	&Address{}, &CfxBlock{}, &CfxTx{}, &CfxTrace{}, &ContractLifecycle{},
 	&Topic{}, &LogParam{}, &Log{},
 }
 
@@ -32,6 +36,12 @@ type Block struct {
 	TxCount int    `gorm:"not null" json:"txCount"`
 }
 
+type CfxBlock struct {
+	Epoch    uint64 `gorm:"not null" json:"epoch"`
+	Position int    `gorm:"not null" json:"position"`
+	Block
+}
+
 type Tx struct {
 	Model
 	BlockId uint64 `gorm:"not null" json:"blockId"`
@@ -41,13 +51,18 @@ type Tx struct {
 	Status  uint   `gorm:"not null" json:"status"`
 }
 
+type CfxTx struct {
+	Epoch uint64 `gorm:"not null" json:"epoch"`
+	Tx
+}
+
 type Trace struct {
 	Model
-	TxId                uint64          `gorm:"not null" json:"txId"`
-	TransactionPosition uint            `gorm:"not null" json:"transactionPosition"`
-	FromId              uint64          `gorm:"not null" json:"fromId"`
-	ToId                uint64          `gorm:"not null" json:"toId"`
-	TraceType           types.TraceType `gorm:"type:varchar(16);not null" json:"traceType"`
+	TxId                uint64 `gorm:"not null" json:"txId"`
+	TransactionPosition uint   `gorm:"not null" json:"transactionPosition"`
+	FromId              uint64 `gorm:"not null" json:"fromId"`
+	ToId                uint64 `gorm:"not null" json:"toId"`
+	TraceType           string `gorm:"type:varchar(32);not null" json:"traceType"`
 	// for different actions, these two fields could be:
 	// callType, createType, refundAddress, rewardType
 	ExtraField string `gorm:"size:16;not null" json:"extraField"`
@@ -57,6 +72,15 @@ type Trace struct {
 	Value      decimal.Decimal `gorm:"type:decimal(36,18);not null" json:"value"`
 	Method     string          `gorm:"size:10;not null" json:"method"`
 	TraceIndex int             `gorm:"not null" json:"traceIndex"`
+}
+
+type CfxTrace struct {
+	Trace
+	FromPocket string `gorm:"size:64;not null" json:"fromPocket"`
+	ToPocket   string `gorm:"size:64;not null" json:"toPocket"`
+	FromSpace  string `gorm:"size:64;not null" json:"fromSpace"`
+	ToSpace    string `gorm:"size:64;not null" json:"toSpace"`
+	Outcome    string `gorm:"type:varchar(16);not null" json:"outcome"`
 }
 
 type ContractLifecycle struct {

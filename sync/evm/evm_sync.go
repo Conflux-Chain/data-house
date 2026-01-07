@@ -222,7 +222,7 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 	for index, trace := range data.Traces {
 		dbTrace := model.Trace{
 			TraceIndex:          index,
-			TraceType:           trace.Type,
+			TraceType:           string(trace.Type),
 			Valid:               *trace.Valid,
 			TransactionPosition: *trace.TransactionPosition,
 			//Type: trace.Action

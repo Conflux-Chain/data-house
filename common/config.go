@@ -11,15 +11,16 @@ import (
 type Config[T evm.BlockData | core.EpochData] struct {
 	sync.CatchupParamsDB[T]
 	sync.ParamsDB[T]
-	evm.AdapterConfig
 	FirstBlock uint64
 	Batch      bool
 }
 
 type EvmConfig struct {
 	Config[evm.BlockData]
+	evm.AdapterConfig
 }
 
 type CfxConfig struct {
 	Config[core.EpochData]
+	core.AdapterConfig
 }
