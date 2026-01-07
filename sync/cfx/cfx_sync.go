@@ -131,7 +131,8 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 		if uint64(receipt.OutcomeStatus) == TxStatusSkip {
 			continue
 		}
-		for txIdx, log := range receipt.Logs {
+		txIdx := -1
+		for _, log := range receipt.Logs {
 			topicBean, err := model.MakeTopicId(t.db, log.Topics[0].String(), blockTime)
 			if err != nil {
 				return nil, errors.Wrap(err, "create topic bean")
@@ -141,6 +142,7 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 				return nil, errors.Wrap(err, "create contract bean")
 			}
 
+			txIdx++
 			logBean := &model.Log{
 				BlockId:    uint64(blockIndex),
 				TopicId:    topicBean.ID,
@@ -359,7 +361,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 
 func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, []int, error) {
 	var txs []*model.CfxTx
-	var blockTxInfo []int = make([]int, len(receipts))
+	var blockTxInfo = make([]int, len(receipts))
 	for idx, receipt := range receipts {
 		arr, err := buildTxFromReceipt(db, receipt, blockTime)
 		if err != nil {
