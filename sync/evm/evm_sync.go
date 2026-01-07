@@ -9,6 +9,7 @@ import (
 
 	"github.com/Conflux-Chain/data-house/common"
 	"github.com/Conflux-Chain/data-house/model"
+	syncUtil "github.com/Conflux-Chain/go-conflux-util/blockchain/sync"
 	evmUtil "github.com/Conflux-Chain/go-conflux-util/blockchain/sync/evm"
 	dbUtil "github.com/Conflux-Chain/go-conflux-util/blockchain/sync/process/db"
 	"github.com/openweb3/web3go/types"
@@ -345,7 +346,7 @@ func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.T
 }
 
 func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig, db *gorm.DB) error {
-	var utilCfg = evmCfg.Config
+	var paramsDB = evmCfg.ParamsDB
 	processor := &TraceProcessor{
 		db: db,
 	}
@@ -353,8 +354,17 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig
 	if err != nil {
 		return err
 	}
+	paramsDB.NextBlockNumber = nextBlockNumber
+	paramsDB.DB = db
+	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.AdapterConfig)
+	if errAd != nil {
+		return errAd
+	}
+	paramsDB.Adapter = adapter
 
-	return evmUtil.StartFinalizedDB(ctx, wg, utilCfg, db, nextBlockNumber, processor)
+	syncUtil.StartFinalizedDB(ctx, wg, paramsDB, processor)
+
+	return nil
 }
 
 func calculateNextBlockNo(db *gorm.DB, evmCfg *common.EvmConfig) (uint64, error) {
@@ -425,12 +435,9 @@ func StartSyncBatch(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmC
 	if err != nil {
 		return err
 	}
+	evmCfg.CatchupParamsDB.NextBlockNumber = nextBlockNumber
 
-	if evmCfg.CatchUpConfig.Adapter.URL == "" {
-		evmCfg.CatchUpConfig.Adapter.URL = evmCfg.Config.Adapter.URL
-	}
-
-	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.CatchUpConfig.Adapter)
+	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.AdapterConfig)
 	if errAd != nil {
 		return errAd
 	}
@@ -440,8 +447,10 @@ func StartSyncBatch(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmC
 		return errF
 	}
 	processor.StopAtBlock = finalizedBlock
+	evmCfg.CatchupParamsDB.Adapter = adapter
+	evmCfg.CatchupParamsDB.DB = db
 
-	_, err = evmUtil.CatchUpDB(ctx, evmCfg.CatchUpConfig, db, nextBlockNumber, processor)
+	syncUtil.CatchUpDB(ctx, evmCfg.CatchupParamsDB, processor)
 
-	return err
+	return nil
 }
