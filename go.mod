@@ -3,7 +3,7 @@ module github.com/Conflux-Chain/data-house
 go 1.23.10
 
 require (
-	github.com/Conflux-Chain/go-conflux-util v0.6.9-0.20251226095241-429733610f4c
+	github.com/Conflux-Chain/go-conflux-util v0.6.9-0.20260106104643-4aced6fe1836
 	github.com/openweb3/web3go v0.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.3.1
