@@ -219,7 +219,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 	blockTime := time.Unix(pivotBlock.Timestamp.ToInt().Int64(), 0)
 	blockMap := buildBlockMap(data.Blocks)
 
-	txArr, err := buildTxFromReceiptArr(t.db, data.Receipts, blockTime)
+	txArr, blockTxInfo, err := buildTxFromReceiptArr(t.db, data.Receipts, blockTime)
 	if err != nil {
 		return newErrOperation(errors.Wrap(err, "failed to build tx from receipts"))
 	}
@@ -240,9 +240,11 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 				ID:        0,
 				CreatedAt: blockTime,
 			},
+			TxCount: blockTxInfo[idx],
 			Hash:    block.Hash.String(),
 			MinerID: addrId.ID,
 		}
+
 		cfxBlock := model.CfxBlock{
 			Epoch:    block.EpochNumber.ToInt().Uint64(),
 			Block:    dbBlock,
@@ -344,16 +346,18 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 	}
 }
 
-func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, error) {
+func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, []int, error) {
 	var txs []*model.CfxTx
-	for _, receipt := range receipts {
+	var blockTxInfo []int = make([]int, len(receipts))
+	for idx, receipt := range receipts {
 		arr, err := buildTxFromReceipt(db, receipt, blockTime)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		txs = append(txs, arr...)
+		blockTxInfo[idx] = len(arr)
 	}
-	return txs, nil
+	return txs, blockTxInfo, nil
 }
 func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, error) {
 	var txArr []*model.CfxTx
