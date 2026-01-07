@@ -13,7 +13,7 @@ var EvmTables = []any{
 
 var CfxTables = []any{
 	&Address{}, &CfxBlock{}, &CfxTx{}, &CfxTrace{}, &ContractLifecycle{},
-	&Topic{}, &LogParam{}, &Log{},
+	&Topic{}, &LogParam{}, &CfxLog{},
 }
 
 type Model struct {
@@ -115,6 +115,11 @@ type Log struct {
 	Param2 uint64 `gorm:"not null" json:"param2"`
 	Param3 uint64 `gorm:"not null" json:"param3"`
 	Count  uint   `gorm:"not null" json:"count"`
+}
+
+type CfxLog struct {
+	Epoch uint64 `gorm:"not null" json:"epoch"`
+	Log
 }
 
 const (

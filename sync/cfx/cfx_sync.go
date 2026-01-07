@@ -33,7 +33,7 @@ type TraceOperation struct {
 	traceArr             []*model.CfxTrace
 	txArr                []*model.CfxTx
 	contractLifecycleArr []*model.ContractLifecycle
-	logArr               []*model.Log
+	logArr               []*model.CfxLog
 	Err                  error
 }
 
@@ -128,7 +128,10 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 	logCounter := model.NewLogCounter()
 
 	for _, receipt := range receipts {
-		for _, log := range receipt.Logs {
+		if uint64(receipt.OutcomeStatus) == TxStatusSkip {
+			continue
+		}
+		for txIdx, log := range receipt.Logs {
 			topicBean, err := model.MakeTopicId(t.db, log.Topics[0].String(), blockTime)
 			if err != nil {
 				return nil, errors.Wrap(err, "create topic bean")
@@ -141,7 +144,7 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 			logBean := &model.Log{
 				BlockId:    uint64(blockIndex),
 				TopicId:    topicBean.ID,
-				TxIndex:    uint(log.TransactionIndex.ToInt().Int64()),
+				TxIndex:    uint(txIdx),
 				ContractId: addrBean.ID,
 				Model: model.Model{
 					CreatedAt: blockTime,
@@ -210,8 +213,9 @@ func buildBlockMap(blocks []*types.Block) map[string]BlockRef {
 }
 
 func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
+	epoch := data.Blocks[0].EpochNumber.ToInt().Uint64()
 	logrus.WithFields(logrus.Fields{
-		"epoch": data.Blocks[0].EpochNumber.ToInt().Uint64(),
+		"epoch": epoch,
 	}).Info("Processing Epoch Data")
 
 	blockCount := len(data.Blocks)
@@ -227,6 +231,13 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 	logArr, err := t.buildLogsArr(data.Receipts, blockTime)
 	if err != nil {
 		return newErrOperation(errors.Wrap(err, "failed to build logs"))
+	}
+	var cfxLogArr []*model.CfxLog
+	for _, log := range logArr {
+		cfxLogArr = append(cfxLogArr, &model.CfxLog{
+			Log:   *log,
+			Epoch: epoch,
+		})
 	}
 
 	var blockArr []model.CfxBlock
@@ -342,7 +353,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 		traceArr:             traceArr,
 		txArr:                txArr,
 		contractLifecycleArr: contractLifecycleArr,
-		logArr:               logArr,
+		logArr:               cfxLogArr,
 	}
 }
 
