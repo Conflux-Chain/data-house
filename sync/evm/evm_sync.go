@@ -408,7 +408,7 @@ func (p *BatchProcessor) BatchProcess(data evmUtil.BlockData) int {
 	return beanCount
 }
 
-func (p *BatchProcessor) BatchExec(tx *gorm.DB, createBatchSize int) error {
+func (p *BatchProcessor) BatchExec(tx *gorm.DB, _ int) error {
 	if p.Stopped && len(p.TraceOpArr) == 0 {
 		return fmt.Errorf("batch processor stopped at block %d", p.StopAtBlock)
 	}
@@ -425,7 +425,7 @@ func (p *BatchProcessor) BatchReset() {
 	p.TraceOpArr = nil
 }
 
-func StartSyncBatch(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig, db *gorm.DB) error {
+func StartSyncBatch(ctx context.Context, _ *sync.WaitGroup, evmCfg *common.EvmConfig, db *gorm.DB) error {
 	processor := &BatchProcessor{
 		TraceProcessor: TraceProcessor{
 			db: db,

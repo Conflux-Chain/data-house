@@ -435,7 +435,7 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, cfxCfg *common.CfxConfig
 	return nil
 }
 
-func (p *TraceProcessor) prepareEpoch0(ctx context.Context, cfxCfg *common.CfxConfig) {
+func (t *TraceProcessor) prepareEpoch0(ctx context.Context, cfxCfg *common.CfxConfig) {
 	if cfxCfg.AdapterConfig.Option.IgnoreTraces {
 		return
 	}
@@ -454,8 +454,8 @@ func (p *TraceProcessor) prepareEpoch0(ctx context.Context, cfxCfg *common.CfxCo
 		MirrorAddressMap: nil,
 	}
 
-	op := p.Process(data)
-	if err := op.Exec(p.db); err != nil {
+	op := t.Process(data)
+	if err := op.Exec(t.db); err != nil {
 		logrus.Fatal(err)
 	}
 
@@ -503,7 +503,7 @@ func (p *BatchProcessor) BatchProcess(data coreUtil.EpochData) int {
 	return beanCount
 }
 
-func (p *BatchProcessor) BatchExec(tx *gorm.DB, createBatchSize int) error {
+func (p *BatchProcessor) BatchExec(tx *gorm.DB, _ int) error {
 	if p.Stopped && len(p.TraceOpArr) == 0 {
 		return fmt.Errorf("batch processor stopped at block %d", p.StopAtBlock)
 	}
@@ -520,7 +520,7 @@ func (p *BatchProcessor) BatchReset() {
 	p.TraceOpArr = nil
 }
 
-func StartSyncBatch(ctx context.Context, wg *sync.WaitGroup, cfxCfg *common.CfxConfig, db *gorm.DB) error {
+func StartSyncBatch(ctx context.Context, _ *sync.WaitGroup, cfxCfg *common.CfxConfig, db *gorm.DB) error {
 	processor := &BatchProcessor{
 		TraceProcessor: TraceProcessor{
 			db: db,
