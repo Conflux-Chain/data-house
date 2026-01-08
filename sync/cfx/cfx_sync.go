@@ -45,6 +45,8 @@ func newErrOperation(err error) *TraceOperation {
 }
 
 func (o *TraceOperation) Exec(tx *gorm.DB) error {
+	defer common.Recover()
+
 	if o.Err != nil {
 		return o.Err
 	}
@@ -217,6 +219,8 @@ func buildBlockMap(blocks []*types.Block) map[string]BlockRef {
 }
 
 func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
+	defer common.Recover()
+
 	epoch := data.Blocks[0].EpochNumber.ToInt().Uint64()
 	logrus.WithFields(logrus.Fields{
 		"epoch": epoch,
