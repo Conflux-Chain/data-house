@@ -82,7 +82,8 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 
 	if len(o.logArr) > 0 {
 		for _, log := range o.logArr {
-			log.TxId = o.txArr2d[log.BlockId][log.TxIndex].ID
+			blockTx := o.txArr2d[log.BlockId]
+			log.TxId = blockTx[log.TxIndex].ID
 		}
 		if err := tx.Create(&o.logArr).Error; err != nil {
 			return errors.Wrap(err, "create logs")
@@ -128,11 +129,12 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 	var logArr []model.LogEntry
 	logCounter := model.NewLogCounter()
 
+	txIdx := -1
 	for _, receipt := range receipts {
 		if uint64(receipt.OutcomeStatus) == TxStatusSkip {
 			continue
 		}
-		txIdx := -1
+		txIdx++
 		for _, log := range receipt.Logs {
 			topicBean, err := model.MakeTopicId(t.db, log.Topics[0].String(), blockTime)
 			if err != nil {
@@ -143,7 +145,6 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 				return nil, errors.Wrap(err, "create contract bean")
 			}
 
-			txIdx++
 			logBean := &model.Log{
 				BlockId:    uint64(blockIndex),
 				TopicId:    topicBean.ID,
