@@ -352,6 +352,13 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 		}
 	}
 
+	if creationStack.Size() > 0 {
+		return newErrOperation(fmt.Errorf("contract creation stack overflow"))
+	}
+	if callStack.Size() > 0 {
+		return newErrOperation(fmt.Errorf("trace call stack overflow"))
+	}
+
 	return &TraceOperation{
 		dbBlock:              blockArr,
 		traceArr:             traceArr,
@@ -373,7 +380,7 @@ func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, b
 		}
 		txs = append(txs, arr...)
 		blockTxInfo[idx] = len(arr)
-		tx2d = append(tx2d, arr)
+		tx2d[idx] = arr
 	}
 	return txs, tx2d, nil
 }
