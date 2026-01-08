@@ -32,6 +32,7 @@ type TraceOperation struct {
 	dbBlock              []model.CfxBlock
 	traceArr             []*model.CfxTrace
 	txArr                []*model.CfxTx
+	txArr2d              [][]*model.CfxTx
 	contractLifecycleArr []*model.ContractLifecycle
 	logArr               []*model.CfxLog
 	Err                  error
@@ -81,7 +82,7 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 
 	if len(o.logArr) > 0 {
 		for _, log := range o.logArr {
-			log.TxId = o.txArr[log.TxIndex].ID
+			log.TxId = o.txArr2d[log.BlockId][log.TxIndex].ID
 		}
 		if err := tx.Create(&o.logArr).Error; err != nil {
 			return errors.Wrap(err, "create logs")
@@ -253,7 +254,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 				ID:        0,
 				CreatedAt: blockTime,
 			},
-			TxCount: blockTxInfo[idx],
+			TxCount: len(blockTxInfo[idx]),
 			Hash:    block.Hash.String(),
 			MinerID: addrId.ID,
 		}
@@ -354,13 +355,15 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 		dbBlock:              blockArr,
 		traceArr:             traceArr,
 		txArr:                txArr,
+		txArr2d:              blockTxInfo,
 		contractLifecycleArr: contractLifecycleArr,
 		logArr:               cfxLogArr,
 	}
 }
 
-func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, []int, error) {
+func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, [][]*model.CfxTx, error) {
 	var txs []*model.CfxTx
+	var tx2d = make([][]*model.CfxTx, len(receipts))
 	var blockTxInfo = make([]int, len(receipts))
 	for idx, receipt := range receipts {
 		arr, err := buildTxFromReceipt(db, receipt, blockTime)
@@ -369,8 +372,9 @@ func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, b
 		}
 		txs = append(txs, arr...)
 		blockTxInfo[idx] = len(arr)
+		tx2d = append(tx2d, arr)
 	}
-	return txs, blockTxInfo, nil
+	return txs, tx2d, nil
 }
 func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, error) {
 	var txArr []*model.CfxTx
