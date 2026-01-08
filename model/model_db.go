@@ -42,18 +42,23 @@ type CfxBlock struct {
 	Block
 }
 
-type Tx struct {
+type BaseTx struct {
 	Model
+	Hash   string `gorm:"size:66;unique;not null" json:"hash"`
+	FromId uint64 `gorm:"not null" json:"fromId"`
+	ToId   uint64 `gorm:"not null" json:"toId"`
+	Status uint   `gorm:"not null" json:"status"`
+}
+
+type Tx struct {
+	BaseTx
 	BlockId uint64 `gorm:"not null" json:"blockId"`
-	Hash    string `gorm:"size:66;unique;not null" json:"hash"`
-	FromId  uint64 `gorm:"not null" json:"fromId"`
-	ToId    uint64 `gorm:"not null" json:"toId"`
-	Status  uint   `gorm:"not null" json:"status"`
 }
 
 type CfxTx struct {
-	Epoch uint64 `gorm:"not null" json:"epoch"`
-	Tx
+	Epoch         uint64 `gorm:"not null" json:"epoch"`
+	BlockPosition int8   `gorm:"not null" json:"blockPosition"`
+	BaseTx
 }
 
 type Trace struct {

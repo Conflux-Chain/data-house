@@ -374,7 +374,7 @@ func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, b
 	var tx2d = make([][]*model.CfxTx, len(receipts))
 	var blockTxInfo = make([]int, len(receipts))
 	for idx, receipt := range receipts {
-		arr, err := buildTxFromReceipt(db, receipt, blockTime)
+		arr, err := buildTxFromReceipt(db, receipt, int8(idx), blockTime)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -384,7 +384,7 @@ func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, b
 	}
 	return txs, tx2d, nil
 }
-func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockTime time.Time) ([]*model.CfxTx, error) {
+func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockPos int8, blockTime time.Time) ([]*model.CfxTx, error) {
 	var txArr []*model.CfxTx
 	for _, receipt := range receipts {
 		status := uint64(receipt.OutcomeStatus)
@@ -418,7 +418,7 @@ func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockT
 			return nil, err
 		}
 
-		tx := model.Tx{
+		baseTx := model.BaseTx{
 			Model: model.Model{
 				CreatedAt: blockTime,
 			},
@@ -428,8 +428,9 @@ func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockT
 			Status: uint(status),
 		}
 		cfxTx := &model.CfxTx{
-			Epoch: uint64(*receipt.EpochNumber),
-			Tx:    tx,
+			Epoch:         uint64(*receipt.EpochNumber),
+			BlockPosition: blockPos,
+			BaseTx:        baseTx,
 		}
 		txArr = append(txArr, cfxTx)
 	}
@@ -481,6 +482,11 @@ func (t *TraceProcessor) prepareEpoch0(ctx context.Context, cfxCfg *common.CfxCo
 		CfxTraces:        nil,
 		EthTraces:        nil,
 		MirrorAddressMap: nil,
+	}
+
+	if len(data.Receipts) == 0 {
+		logrus.Warn("no receipts found at epoch 0")
+		return
 	}
 
 	op := t.Process(data)
