@@ -273,9 +273,13 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 	}
 
 	//
-	txMap := make(map[string]uint)
+	type TxInfo struct {
+		idx    uint
+		fromId uint64
+	}
+	txMap := make(map[string]TxInfo)
 	for idx, tx := range txArr {
-		txMap[tx.Hash] = uint(idx)
+		txMap[tx.Hash] = TxInfo{uint(idx), tx.FromId}
 	}
 	// parse trace
 	var traceArr []*model.CfxTrace
@@ -291,7 +295,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 				TraceIndex:          index,
 				TraceType:           string(trace.Type),
 				Valid:               trace.Valid,
-				TransactionPosition: txMap[trace.TransactionHash.String()],
+				TransactionPosition: txMap[trace.TransactionHash.String()].idx,
 			},
 		}
 		addTrace := true
@@ -327,8 +331,8 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 				Model: model.Model{
 					CreatedAt: blockTime,
 				},
-				TransactionPosition: uint(*trace.TransactionPosition),
-				TxSenderId:          txArr[*trace.TransactionPosition].FromId,
+				TransactionPosition: txMap[trace.TransactionHash.String()].idx,
+				TxSenderId:          txMap[trace.TransactionHash.String()].fromId,
 				ContractId:          dbTrace.ToId,
 				Value:               decimal.NewFromBigInt(create.Value.ToInt(), -18),
 				Event:               model.ContractLifecycleCreate,
