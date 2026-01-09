@@ -93,7 +93,8 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 		for _, log := range o.logArr {
 			log.TxId = o.txArr[log.TxIndex].ID
 		}
-		if err := tx.Create(&o.logArr).Error; err != nil {
+		batchSize := 1000
+		if err := tx.CreateInBatches(&o.logArr, batchSize).Error; err != nil {
 			return errors.Wrap(err, "create logs")
 		}
 	}
