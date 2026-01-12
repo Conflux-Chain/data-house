@@ -67,8 +67,9 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 		trace.TxId = o.txArr[trace.TransactionPosition].ID
 	}
 
+	batchSize := 1000
 	if len(o.txArr) > 0 {
-		if err := tx.Create(&o.traceArr).Error; err != nil {
+		if err := tx.CreateInBatches(&o.traceArr, batchSize).Error; err != nil {
 			return errors.Wrap(err, "create trace")
 		}
 	}
@@ -87,7 +88,6 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 			blockTx := o.txArr2d[log.BlockId]
 			log.TxId = blockTx[log.TxIndex].ID
 		}
-		batchSize := 1000
 		if err := tx.CreateInBatches(&o.logArr, batchSize).Error; err != nil {
 			return errors.Wrap(err, "create logs")
 		}
