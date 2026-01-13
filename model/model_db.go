@@ -63,7 +63,7 @@ type EvmTx struct {
 type CfxTx struct {
 	Epoch         uint64 `gorm:"not null;index:uk_ebt,unique" json:"epoch"`
 	BlockPosition int8   `gorm:"not null;index:uk_ebt,unique" json:"blockPosition"`
-	TxPosition    int8   `gorm:"not null;index:uk_ebt,unique" json:"txPosition"`
+	TxPosition    int16  `gorm:"not null;index:uk_ebt,unique" json:"txPosition"`
 	BaseTx
 }
 
