@@ -585,13 +585,14 @@ func StartSyncBatch(ctx context.Context, _ *sync.WaitGroup, cfxCfg *common.CfxCo
 	if errAd != nil {
 		return errAd
 	}
+	logAdapter := common.NewLoggingAdapter[coreUtil.EpochData](adapter, nil, "coreSync")
 
 	finalizedBlock, errF := adapter.GetFinalizedBlockNumber(ctx)
 	if errF != nil {
 		return errF
 	}
 	processor.StopAtBlock = finalizedBlock
-	cfxCfg.CatchupParamsDB.Adapter = adapter
+	cfxCfg.CatchupParamsDB.Adapter = logAdapter
 	cfxCfg.CatchupParamsDB.DB = db
 
 	syncUtil.CatchUpDB(ctx, cfxCfg.CatchupParamsDB, processor)

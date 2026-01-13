@@ -3,8 +3,8 @@ module github.com/Conflux-Chain/data-house
 go 1.23.10
 
 require (
-	github.com/Conflux-Chain/go-conflux-sdk v1.5.11
-	github.com/Conflux-Chain/go-conflux-util v0.6.9-0.20260108031542-576cfb1db8a1
+	github.com/Conflux-Chain/go-conflux-sdk v1.6.1
+	github.com/Conflux-Chain/go-conflux-util v0.6.9-0.20260113061657-26e392dc1b24
 	github.com/openweb3/web3go v0.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.3.1
@@ -108,3 +108,5 @@ require (
 	gorm.io/driver/sqlite v1.6.0 // indirect
 	gotest.tools v2.2.0+incompatible // indirect
 )
+
+//replace github.com/Conflux-Chain/go-conflux-util => /Users/kang/work/defi-monitor/go-conflux-util
