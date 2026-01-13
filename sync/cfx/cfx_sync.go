@@ -381,6 +381,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 				Value:               decimal.NewFromBigInt(sd.Balance.ToInt(), -18),
 				Event:               model.ContractLifecycleDestroy,
 			})
+			return newErrOperation(fmt.Errorf("test it"))
 		default:
 			return newErrOperation(fmt.Errorf("unknown trace type: %v", trace.Type))
 		}
