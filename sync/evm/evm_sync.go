@@ -15,6 +15,7 @@ import (
 	"github.com/openweb3/web3go/types"
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -29,8 +30,8 @@ type TraceProcessor struct {
 type TraceOperation struct {
 	dbBlock              *model.Block
 	minerAddr            *model.Address
-	traceArr             []*model.Trace
-	txArr                []*model.Tx
+	traceArr             []*model.EvmTrace
+	txArr                []*model.EvmTx
 	contractLifecycleArr []*model.ContractLifecycle
 	logArr               []*model.Log
 	Err                  error
@@ -42,9 +43,18 @@ func newErrOperation(err error) *TraceOperation {
 	}
 }
 
+var lastSavepoint uint64
+
 func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	if o.Err != nil {
 		return o.Err
+	}
+	//
+	curBlock := o.dbBlock.ID
+	if curBlock != lastSavepoint+1 {
+		msg := fmt.Sprintf("excpect epoch %d, got %d", lastSavepoint+1, curBlock)
+		logrus.Error(msg)
+		return fmt.Errorf(msg)
 	}
 	// set miner addr of block
 	addrPre, err := model.MakeAddrId(tx, o.minerAddr.Address, o.dbBlock.CreatedAt)
@@ -99,10 +109,12 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 		}
 	}
 
+	lastSavepoint = curBlock
+
 	return nil
 }
 
-func (t *TraceProcessor) convertTrace(dbTrace *model.Trace, from string, to string,
+func (t *TraceProcessor) convertTrace(dbTrace *model.EvmTrace, from string, to string,
 	value *big.Int, blockTime time.Time) error {
 	fromAddr, err := model.MakeAddrId(t.db, from, blockTime)
 	if err != nil {
@@ -218,15 +230,18 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 		BlockTime: dbBlock.CreatedAt,
 	}
 	// parse trace
-	var traceArr []*model.Trace
+	var traceArr []*model.EvmTrace
 	var contractLifecycleArr []*model.ContractLifecycle
 	for index, trace := range data.Traces {
-		dbTrace := model.Trace{
-			TraceIndex:          index,
-			TraceType:           string(trace.Type),
-			Valid:               *trace.Valid,
-			TransactionPosition: *trace.TransactionPosition,
-			//Type: trace.Action
+		dbTrace := model.EvmTrace{
+			BlockId: trace.BlockNumber,
+			Trace: model.Trace{
+				TraceIndex:          index,
+				TraceType:           string(trace.Type),
+				Valid:               *trace.Valid,
+				TransactionPosition: *trace.TransactionPosition,
+				//Type: trace.Action
+			},
 		}
 		switch trace.Type {
 		case types.TRACE_CALL:
@@ -298,8 +313,8 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 	}
 }
 
-func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.Time) ([]*model.Tx, error) {
-	var txArr []*model.Tx
+func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.Time) ([]*model.EvmTx, error) {
+	var txArr []*model.EvmTx
 	for _, receipt := range receipts {
 		if receipt.Status == nil {
 			return nil, fmt.Errorf("receipt status is nil, tx hash %v", receipt.TransactionHash.Hex())
@@ -332,7 +347,7 @@ func buildTxFromReceipt(db *gorm.DB, receipts []*types.Receipt, blockTime time.T
 			return nil, err
 		}
 
-		tx := &model.Tx{
+		tx := &model.EvmTx{
 			BaseTx: model.BaseTx{
 				Model: model.Model{
 					CreatedAt: blockTime,
@@ -357,6 +372,7 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig
 	if err != nil {
 		return err
 	}
+	lastSavepoint = nextBlockNumber - 1
 	paramsDB.NextBlockNumber = nextBlockNumber
 	paramsDB.DB = db
 	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.AdapterConfig)

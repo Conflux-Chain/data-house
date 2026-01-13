@@ -104,9 +104,13 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	}
 
 	lastSavepoint = curEpoch
-	logrus.WithFields(logrus.Fields{
-		"epoch": curEpoch,
-	}).Info("save epoch")
+
+	if curEpoch%1000 == 0 {
+		logrus.WithFields(logrus.Fields{
+			"epoch": curEpoch,
+		}).Info("save epoch")
+	}
+
 	return nil
 }
 
@@ -237,9 +241,11 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 	defer common.Recover()
 
 	epoch := data.Blocks[0].EpochNumber.ToInt().Uint64()
-	logrus.WithFields(logrus.Fields{
-		"epoch": epoch,
-	}).Info("Processing Epoch Data")
+	if epoch%1000 == 0 {
+		logrus.WithFields(logrus.Fields{
+			"epoch": epoch,
+		}).Info("Processing Epoch Data")
+	}
 
 	blockCount := len(data.Blocks)
 	pivotBlock := data.Blocks[blockCount-1]
@@ -306,6 +312,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 		txRef := data.Receipts[blockRef.idx][int(trace.TransactionPosition)]
 
 		dbTrace := model.CfxTrace{
+			Epoch: epoch,
 			Trace: model.Trace{
 				TraceIndex:          index,
 				TraceType:           string(trace.Type),
@@ -424,7 +431,7 @@ func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, b
 }
 func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockPos int8, blockTime time.Time) ([]*model.CfxTx, error) {
 	var txArr []*model.CfxTx
-	for _, receipt := range receipts {
+	for txIdx, receipt := range receipts {
 		status := uint64(receipt.OutcomeStatus)
 		if status == TxStatusSkip {
 			continue
@@ -468,6 +475,7 @@ func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockP
 		cfxTx := &model.CfxTx{
 			Epoch:         uint64(receipt.EpochNumber),
 			BlockPosition: blockPos,
+			TxPosition:    int8(txIdx),
 			BaseTx:        baseTx,
 		}
 		txArr = append(txArr, cfxTx)

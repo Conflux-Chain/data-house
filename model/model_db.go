@@ -7,7 +7,7 @@ import (
 )
 
 var EvmTables = []any{
-	&Address{}, &Block{}, &Tx{}, &Trace{}, &ContractLifecycle{},
+	&Address{}, &Block{}, &EvmTx{}, &EvmTrace{}, &ContractLifecycle{},
 	&Topic{}, &LogParam{}, &Log{},
 }
 
@@ -37,8 +37,8 @@ type Block struct {
 }
 
 type CfxBlock struct {
-	Epoch    uint64 `gorm:"not null" json:"epoch"`
-	Position int    `gorm:"not null" json:"position"`
+	Epoch    uint64 `gorm:"not null;index:uk_epoch_position,unique" json:"epoch"`
+	Position int    `gorm:"not null;index:uk_epoch_position,unique" json:"position"`
 	Block
 }
 
@@ -50,14 +50,15 @@ type BaseTx struct {
 	Status uint   `gorm:"not null" json:"status"`
 }
 
-type Tx struct {
+type EvmTx struct {
 	BaseTx
-	BlockId uint64 `gorm:"not null" json:"blockId"`
+	BlockId uint64 `gorm:"not null;index:idx_block" json:"blockId"`
 }
 
 type CfxTx struct {
-	Epoch         uint64 `gorm:"not null" json:"epoch"`
-	BlockPosition int8   `gorm:"not null" json:"blockPosition"`
+	Epoch         uint64 `gorm:"not null;index:uk_ebt,unique" json:"epoch"`
+	BlockPosition int8   `gorm:"not null;index:uk_ebt,unique" json:"blockPosition"`
+	TxPosition    int8   `gorm:"not null;index:uk_ebt,unique" json:"txPosition"`
 	BaseTx
 }
 
@@ -79,8 +80,14 @@ type Trace struct {
 	TraceIndex int             `gorm:"not null" json:"traceIndex"`
 }
 
+type EvmTrace struct {
+	BlockId uint64 `gorm:"not null;index:idx_block" json:"blockId"`
+	Trace
+}
+
 type CfxTrace struct {
 	Trace
+	Epoch      uint64 `gorm:"not null:index:idx_epoch" json:"epoch"`
 	FromPocket string `gorm:"size:64;not null" json:"fromPocket"`
 	ToPocket   string `gorm:"size:64;not null" json:"toPocket"`
 	FromSpace  string `gorm:"size:64;not null" json:"fromSpace"`
