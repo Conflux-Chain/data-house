@@ -140,7 +140,7 @@ type EvmLog struct {
 
 type CfxLog struct {
 	Epoch         uint64 `gorm:"not null;index:idx_epoch" json:"epoch"`
-	BlockPosition int8   `gorm:"not null;index:uk_ebt,unique" json:"blockPosition"`
+	BlockPosition int8   `gorm:"not null" json:"blockPosition"`
 	Log
 }
 
