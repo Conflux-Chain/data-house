@@ -70,9 +70,10 @@ func (a *LoggingAdapter[T]) GetBlockData(ctx context.Context, blockNumber uint64
 		"operation":    "GetBlockData",
 		"block_number": blockNumber,
 	})
-
+	logrus.Info("GetBlockData ", blockNumber)
 	data, err := a.inner.GetBlockData(ctx, blockNumber)
 	if err != nil {
+		logrus.WithError(err).Error("Failed to get block data ", blockNumber)
 		logEntry.WithError(err).WithFields(logrus.Fields{
 			"block_number": blockNumber,
 		}).Error("Failed to get block data")
