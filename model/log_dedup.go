@@ -37,7 +37,6 @@ func NewLogCounter() *LogCounter {
 // Creates a composite key from log fields and updates the counter
 func (lc *LogCounter) IncrementAndGet(log *Log) (uint, *LogKey) {
 	key := LogKey{
-		BlockId:    log.BlockId,
 		TxIndex:    log.TxIndex,
 		ContractId: log.ContractId,
 		TopicId:    log.TopicId,

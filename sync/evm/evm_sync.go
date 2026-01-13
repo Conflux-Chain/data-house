@@ -28,12 +28,12 @@ type TraceProcessor struct {
 }
 
 type TraceOperation struct {
-	dbBlock              *model.Block
+	dbBlock              *model.EvmBlock
 	minerAddr            *model.Address
 	traceArr             []*model.EvmTrace
 	txArr                []*model.EvmTx
 	contractLifecycleArr []*model.ContractLifecycle
-	logArr               []*model.Log
+	logArr               []*model.EvmLog
 	Err                  error
 }
 
@@ -50,9 +50,9 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 		return o.Err
 	}
 	//
-	curBlock := o.dbBlock.ID
+	curBlock := o.dbBlock.BlockNum
 	if curBlock != lastSavepoint+1 {
-		msg := fmt.Sprintf("excpect epoch %d, got %d", lastSavepoint+1, curBlock)
+		msg := fmt.Sprintf("excpect block %d, got %d", lastSavepoint+1, curBlock)
 		logrus.Error(msg)
 		return fmt.Errorf(msg)
 	}
@@ -70,7 +70,7 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 
 	// update block id for tx record
 	for _, txPO := range o.txArr {
-		txPO.BlockId = o.dbBlock.ID
+		txPO.BlockNum = o.dbBlock.BlockNum
 	}
 
 	if len(o.txArr) > 0 {
@@ -132,7 +132,7 @@ func (t *TraceProcessor) convertTrace(dbTrace *model.EvmTrace, from string, to s
 	return nil
 }
 
-func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Time) ([]*model.Log, error) {
+func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Time) ([]*model.EvmLog, error) {
 	var logArr []model.LogEntry
 	logCounter := model.NewLogCounter()
 
@@ -147,13 +147,16 @@ func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Tim
 				return nil, errors.Wrap(err, "create contract bean")
 			}
 
-			logBean := &model.Log{
-				BlockId:    log.BlockNumber,
-				TopicId:    topicBean.ID,
-				TxIndex:    log.TxIndex,
-				ContractId: addrBean.ID,
-				Model: model.Model{
-					CreatedAt: blockTime,
+			logBean := &model.EvmLog{
+				BlockNum: receipt.BlockNumber,
+				Log: model.Log{
+					TopicId:    topicBean.ID,
+					TxIndex:    log.TxIndex,
+					ContractId: addrBean.ID,
+					Model: model.Model{
+						ID:        receipt.BlockNumber,
+						CreatedAt: blockTime,
+					},
 				},
 			}
 
@@ -182,21 +185,26 @@ func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Tim
 			}
 
 			// only keep the first log
-			if cnt, key := logCounter.IncrementAndGet(logBean); cnt == 1 {
+			if cnt, key := logCounter.IncrementAndGet(&logBean.Log); cnt == 1 {
 				logArr = append(logArr, model.LogEntry{
 					Key:   key,
-					Value: logBean,
+					Value: &logBean.Log,
 				})
 			}
 		}
 	}
 
 	// set count
-	var logs []*model.Log
+	var logs []*model.EvmLog
 	for _, entry := range logArr {
 		log := entry.Value
 		log.Count = logCounter.GetCount(entry.Key)
-		logs = append(logs, log)
+		_log := &model.EvmLog{
+			BlockNum: log.ID,
+			Log:      *log,
+		}
+		log.ID = 0
+		logs = append(logs, _log)
 	}
 
 	return logs, nil
@@ -215,14 +223,16 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 		return newErrOperation(errors.Wrap(err, "failed to build logs"))
 	}
 
-	dbBlock := model.Block{
-		Model: model.Model{
-			ID:        data.Block.Number.Uint64(),
-			CreatedAt: blockTime,
+	dbBlock := model.EvmBlock{
+		BlockNum: data.Block.Number.Uint64(),
+		Block: model.Block{
+			Model: model.Model{
+				CreatedAt: blockTime,
+			},
+			Hash:    data.Block.Hash.Hex(),
+			MinerID: 0,
+			TxCount: len(data.Receipts),
 		},
-		Hash:    data.Block.Hash.Hex(),
-		MinerID: 0,
-		TxCount: len(data.Receipts),
 	}
 
 	dbAddr := model.Address{
@@ -234,7 +244,7 @@ func (t *TraceProcessor) Process(data evmUtil.BlockData) dbUtil.Operation {
 	var contractLifecycleArr []*model.ContractLifecycle
 	for index, trace := range data.Traces {
 		dbTrace := model.EvmTrace{
-			BlockId: trace.BlockNumber,
+			BlockNum: trace.BlockNumber,
 			Trace: model.Trace{
 				TraceIndex:          index,
 				TraceType:           string(trace.Type),
@@ -387,15 +397,17 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig
 }
 
 func calculateNextBlockNo(db *gorm.DB, evmCfg *common.EvmConfig) (uint64, error) {
-	var dbBlock model.Block
+	var dbBlock model.EvmBlock
 	if err := db.Order("id desc").First(&dbBlock).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			dbBlock.ID = evmCfg.FirstBlock - 1
+			dbBlock.BlockNum = evmCfg.FirstBlock - 1
+			logrus.Info("not found in db, fake id ", dbBlock.BlockNum)
 		} else {
 			return 0, errors.WithMessage(err, "Failed to get last block in DB")
 		}
 	}
-	nextBlockNumber := dbBlock.ID + 1
+	nextBlockNumber := dbBlock.BlockNum + 1
+	logrus.Info("Next block number: ", nextBlockNumber)
 	return nextBlockNumber, nil
 }
 
@@ -454,6 +466,7 @@ func StartSyncBatch(ctx context.Context, _ *sync.WaitGroup, evmCfg *common.EvmCo
 	if err != nil {
 		return err
 	}
+	lastSavepoint = nextBlockNumber - 1
 	evmCfg.CatchupParamsDB.NextBlockNumber = nextBlockNumber
 
 	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.AdapterConfig)

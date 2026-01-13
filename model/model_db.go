@@ -7,8 +7,8 @@ import (
 )
 
 var EvmTables = []any{
-	&Address{}, &Block{}, &EvmTx{}, &EvmTrace{}, &ContractLifecycle{},
-	&Topic{}, &LogParam{}, &Log{},
+	&Address{}, &EvmBlock{}, &EvmTx{}, &EvmTrace{}, &ContractLifecycle{},
+	&Topic{}, &LogParam{}, &EvmLog{},
 }
 
 var CfxTables = []any{
@@ -36,6 +36,11 @@ type Block struct {
 	TxCount int    `gorm:"not null" json:"txCount"`
 }
 
+type EvmBlock struct {
+	BlockNum uint64 `gorm:"not nul;unique" json:"blockNum"`
+	Block
+}
+
 type CfxBlock struct {
 	Epoch    uint64 `gorm:"not null;index:uk_epoch_position,unique" json:"epoch"`
 	Position int    `gorm:"not null;index:uk_epoch_position,unique" json:"position"`
@@ -52,7 +57,7 @@ type BaseTx struct {
 
 type EvmTx struct {
 	BaseTx
-	BlockId uint64 `gorm:"not null;index:idx_block" json:"blockId"`
+	BlockNum uint64 `gorm:"not null;index:idx_block" json:"blockNum"`
 }
 
 type CfxTx struct {
@@ -81,7 +86,7 @@ type Trace struct {
 }
 
 type EvmTrace struct {
-	BlockId uint64 `gorm:"not null;index:idx_block" json:"blockId"`
+	BlockNum uint64 `gorm:"not null;index:idx_block" json:"blockNum"`
 	Trace
 }
 
@@ -117,7 +122,6 @@ type LogParam struct {
 
 type Log struct {
 	Model
-	BlockId    uint64 `gorm:"not null" json:"blockId"`
 	TxIndex    uint   `gorm:"not null" json:"txIndex"`
 	TxId       uint64 `gorm:"not null" json:"txId"`
 	ContractId uint64 `gorm:"not null" json:"contractId"`
@@ -129,8 +133,14 @@ type Log struct {
 	Count  uint   `gorm:"not null" json:"count"`
 }
 
+type EvmLog struct {
+	BlockNum uint64 `gorm:"not null" json:"blockNum"`
+	Log
+}
+
 type CfxLog struct {
-	Epoch uint64 `gorm:"not null" json:"epoch"`
+	Epoch         uint64 `gorm:"not null;index:idx_epoch" json:"epoch"`
+	BlockPosition int8   `gorm:"not null;index:uk_ebt,unique" json:"blockPosition"`
 	Log
 }
 

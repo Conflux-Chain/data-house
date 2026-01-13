@@ -95,7 +95,7 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 
 	if len(o.logArr) > 0 {
 		for _, log := range o.logArr {
-			blockTx := o.txArr2d[log.BlockId]
+			blockTx := o.txArr2d[log.BlockPosition]
 			log.TxId = blockTx[log.TxIndex].ID
 		}
 		if err := tx.CreateInBatches(&o.logArr, batchSize).Error; err != nil {
@@ -132,8 +132,8 @@ func (t *TraceProcessor) convertTrace(dbTrace *model.CfxTrace, from string, to s
 	return nil
 }
 
-func (t *TraceProcessor) buildLogsArr(receipts [][]types.TransactionReceipt, blockTime time.Time) ([]*model.Log, error) {
-	var logs []*model.Log
+func (t *TraceProcessor) buildLogsArr(receipts [][]types.TransactionReceipt, blockTime time.Time) ([]*model.CfxLog, error) {
+	var logs []*model.CfxLog
 
 	for index, receipt := range receipts {
 		arr, err := t.buildLogs(receipt, blockTime, index)
@@ -146,7 +146,7 @@ func (t *TraceProcessor) buildLogsArr(receipts [][]types.TransactionReceipt, blo
 	return logs, nil
 }
 
-func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTime time.Time, blockIndex int) ([]*model.Log, error) {
+func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTime time.Time, blockIndex int) ([]*model.CfxLog, error) {
 	var logArr []model.LogEntry
 	logCounter := model.NewLogCounter()
 
@@ -167,11 +167,11 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 			}
 
 			logBean := &model.Log{
-				BlockId:    uint64(blockIndex),
 				TopicId:    topicBean.ID,
 				TxIndex:    uint(txIdx),
 				ContractId: addrBean.ID,
 				Model: model.Model{
+					ID:        uint64(receipt.EpochNumber),
 					CreatedAt: blockTime,
 				},
 			}
@@ -211,11 +211,18 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 	}
 
 	// set count
-	var logs []*model.Log
+	var logs []*model.CfxLog
 	for _, entry := range logArr {
 		log := entry.Value
 		log.Count = logCounter.GetCount(entry.Key)
-		logs = append(logs, log)
+		cfxLog := &model.CfxLog{
+			Epoch:         log.ID,
+			BlockPosition: int8(blockIndex),
+			Log:           *log,
+		}
+		cfxLog.ID = 0
+		logs = append(logs, cfxLog)
+
 	}
 
 	return logs, nil
@@ -257,16 +264,9 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 		return newErrOperation(errors.Wrap(err, "failed to build tx from receipts"))
 	}
 
-	logArr, err := t.buildLogsArr(data.Receipts, blockTime)
+	cfxLogArr, err := t.buildLogsArr(data.Receipts, blockTime)
 	if err != nil {
 		return newErrOperation(errors.Wrap(err, "failed to build logs"))
-	}
-	var cfxLogArr []*model.CfxLog
-	for _, log := range logArr {
-		cfxLogArr = append(cfxLogArr, &model.CfxLog{
-			Log:   *log,
-			Epoch: epoch,
-		})
 	}
 
 	var blockArr []model.CfxBlock
