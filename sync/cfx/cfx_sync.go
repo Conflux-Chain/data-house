@@ -289,7 +289,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 	var callStack = common.NewStack[*model.CfxTrace]()
 	for index, trace := range data.Traces.CfxTraces {
 		blockRef := blockMap[trace.BlockHash.String()]
-		txRef := data.Receipts[blockRef.idx][int(*trace.TransactionPosition)]
+		txRef := data.Receipts[blockRef.idx][int(trace.TransactionPosition)]
 
 		dbTrace := model.CfxTrace{
 			Trace: model.Trace{
@@ -442,7 +442,7 @@ func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockP
 			Status: uint(status),
 		}
 		cfxTx := &model.CfxTx{
-			Epoch:         uint64(*receipt.EpochNumber),
+			Epoch:         uint64(receipt.EpochNumber),
 			BlockPosition: blockPos,
 			BaseTx:        baseTx,
 		}
