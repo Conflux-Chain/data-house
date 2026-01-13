@@ -56,7 +56,9 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 
 	curEpoch := o.dbBlock[0].Epoch
 	if curEpoch != lastSavepoint+1 {
-		return fmt.Errorf("excpect epoch %d, got %d", lastSavepoint+1, curEpoch)
+		msg := fmt.Sprintf("excpect epoch %d, got %d", lastSavepoint+1, curEpoch)
+		logrus.Error(msg)
+		return fmt.Errorf(msg)
 	}
 
 	//save block
@@ -360,16 +362,25 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 			dbTrace.ToPocket = string(ita.ToPocket)
 			dbTrace.ToSpace = string(ita.ToSpace)
 			dbTrace.FromSpace = string(ita.FromSpace)
-			//dbTrace.ExtraField = "refundAddress"
-			//contractLifecycleArr = append(contractLifecycleArr, &model.ContractLifecycle{
-			//	Model: model.Model{
-			//		CreatedAt: dbBlock.CreatedAt,
-			//	},
-			//	TxSenderId: txArr[*trace.TransactionPosition].FromId,
-			//	ContractId: dbTrace.ToId,
-			//	Value:      decimal.NewFromBigInt(suicide.Balance, -18),
-			//	Event:      model.ContractLifecycleDestroy,
-			//})
+		case types.TRACE_SELF_DESTRUCT:
+			sd, _ := trace.Action.(types.SelfDestruct)
+			if err := t.convertTrace(&dbTrace, sd.Address.String(), sd.RefundAddress.String(), sd.Balance.ToInt(), blockTime); err != nil {
+				return newErrOperation(err)
+			}
+
+			dbTrace.ExtraField = "refundAddress"
+			dbTrace.ExtraValue = sd.RefundAddress.String()
+
+			contractLifecycleArr = append(contractLifecycleArr, &model.ContractLifecycle{
+				Model: model.Model{
+					CreatedAt: blockTime,
+				},
+				TransactionPosition: txMap[trace.TransactionHash.String()].idx,
+				TxSenderId:          txMap[trace.TransactionHash.String()].fromId,
+				ContractId:          dbTrace.ToId,
+				Value:               decimal.NewFromBigInt(sd.Balance.ToInt(), -18),
+				Event:               model.ContractLifecycleDestroy,
+			})
 		default:
 			return newErrOperation(fmt.Errorf("unknown trace type: %v", trace.Type))
 		}
