@@ -46,6 +46,14 @@ func newErrOperation(err error) *TraceOperation {
 var lastSavepoint uint64
 
 func (o *TraceOperation) Exec(tx *gorm.DB) error {
+	err := o._exec(tx)
+	if err != nil {
+		logrus.WithError(err).Error("exec failed")
+	}
+	return err
+}
+
+func (o *TraceOperation) _exec(tx *gorm.DB) error {
 	if o.Err != nil {
 		return o.Err
 	}
