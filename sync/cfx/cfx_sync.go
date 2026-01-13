@@ -475,7 +475,7 @@ func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockP
 		cfxTx := &model.CfxTx{
 			Epoch:         uint64(receipt.EpochNumber),
 			BlockPosition: blockPos,
-			TxPosition:    int8(txIdx),
+			TxPosition:    int16(txIdx),
 			BaseTx:        baseTx,
 		}
 		txArr = append(txArr, cfxTx)
