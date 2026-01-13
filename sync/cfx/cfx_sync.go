@@ -54,7 +54,7 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	}
 
 	curEpoch := o.dbBlock[0].Epoch
-	if lastSavepoint > 0 && curEpoch != lastSavepoint+1 {
+	if curEpoch != lastSavepoint+1 {
 		return fmt.Errorf("excpect epoch %d, got %d", lastSavepoint+1, curEpoch)
 	}
 
