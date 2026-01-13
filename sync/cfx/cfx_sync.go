@@ -476,7 +476,8 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, cfxCfg *common.CfxConfig
 	if errAd != nil {
 		return errAd
 	}
-	paramsDB.Adapter = adapter
+	logAdapter := common.NewLoggingAdapter[coreUtil.EpochData](adapter, nil, "coreSync")
+	paramsDB.Adapter = logAdapter
 
 	if nextBlockNumber == 0 {
 		processor.prepareEpoch0(ctx, cfxCfg)
