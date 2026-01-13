@@ -101,6 +101,9 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	}
 
 	lastSavepoint = curEpoch
+	logrus.WithFields(logrus.Fields{
+		"epoch": curEpoch,
+	}).Info("save epoch")
 	return nil
 }
 
