@@ -50,6 +50,7 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 	defer common.Recover()
 
 	if o.Err != nil {
+		logrus.WithError(o.Err).Error("Failed to execute operation")
 		return o.Err
 	}
 
