@@ -201,7 +201,7 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 			}
 
 			// only keep the first log
-			if cnt, key := logCounter.IncrementAndGet(logBean); cnt == 1 {
+			if cnt, key := logCounter.IncrementAndGet(logBean, uint64(blockIndex)); cnt == 1 {
 				logArr = append(logArr, model.LogEntry{
 					Key:   key,
 					Value: logBean,

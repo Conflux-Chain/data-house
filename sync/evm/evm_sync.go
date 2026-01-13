@@ -64,6 +64,9 @@ func (o *TraceOperation) _exec(tx *gorm.DB) error {
 		logrus.Error(msg)
 		return fmt.Errorf(msg)
 	}
+	if curBlock%1000 == 0 {
+		logrus.Infof("save block %d", curBlock)
+	}
 	// set miner addr of block
 	addrPre, err := model.MakeAddrId(tx, o.minerAddr.Address, o.dbBlock.CreatedAt)
 	if err != nil {
@@ -193,7 +196,7 @@ func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Tim
 			}
 
 			// only keep the first log
-			if cnt, key := logCounter.IncrementAndGet(&logBean.Log); cnt == 1 {
+			if cnt, key := logCounter.IncrementAndGet(&logBean.Log, 0); cnt == 1 {
 				logArr = append(logArr, model.LogEntry{
 					Key:   key,
 					Value: &logBean.Log,
@@ -211,7 +214,7 @@ func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Tim
 			BlockNum: log.ID,
 			Log:      *log,
 		}
-		log.ID = 0
+		_log.ID = 0
 		logs = append(logs, _log)
 	}
 

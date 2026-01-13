@@ -35,8 +35,9 @@ func NewLogCounter() *LogCounter {
 
 // IncrementAndGet increases the count for the given log and returns the new count
 // Creates a composite key from log fields and updates the counter
-func (lc *LogCounter) IncrementAndGet(log *Log) (uint, *LogKey) {
+func (lc *LogCounter) IncrementAndGet(log *Log, blockTag uint64) (uint, *LogKey) {
 	key := LogKey{
+		BlockId:    blockTag,
 		TxIndex:    log.TxIndex,
 		ContractId: log.ContractId,
 		TopicId:    log.TopicId,
@@ -70,14 +71,14 @@ func (lc *LogCounter) GetTotalCount() int {
 
 // ProcessAndCountLogs processes a slice of logs and returns a new slice with Count fields populated
 // Each log's Count field is set based on its occurrence order in the sequence
-func (lc *LogCounter) ProcessAndCountLogs(logs []*Log) []*Log {
+func (lc *LogCounter) ProcessAndCountLogs(logs []*Log, blockTag uint64) []*Log {
 	result := make([]*Log, len(logs))
 
 	for i, log := range logs {
 		// Create a copy of the log to avoid modifying the original
 		newLog := *log
 		// Set the Count field based on occurrence
-		newLog.Count, _ = lc.IncrementAndGet(log)
+		newLog.Count, _ = lc.IncrementAndGet(log, blockTag)
 		result[i] = &newLog
 	}
 
