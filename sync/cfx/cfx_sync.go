@@ -485,6 +485,7 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, cfxCfg *common.CfxConfig
 
 	logrus.Info("next block number: ", nextBlockNumber)
 	paramsDB.NextBlockNumber = nextBlockNumber
+	lastSavepoint = nextBlockNumber - 1
 	syncUtil.StartFinalizedDB(ctx, wg, paramsDB, processor)
 
 	return nil
