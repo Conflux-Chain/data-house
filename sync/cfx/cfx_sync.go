@@ -28,6 +28,8 @@ type TraceProcessor struct {
 	db *gorm.DB
 }
 
+var lastSavepoint uint64
+
 type TraceOperation struct {
 	dbBlock              []model.CfxBlock
 	traceArr             []*model.CfxTrace
@@ -49,6 +51,11 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 
 	if o.Err != nil {
 		return o.Err
+	}
+
+	curEpoch := o.dbBlock[0].Epoch
+	if lastSavepoint > 0 && curEpoch != lastSavepoint+1 {
+		return fmt.Errorf("excpect epoch %d, got %d", lastSavepoint+1, curEpoch)
 	}
 
 	//save block
@@ -93,6 +100,7 @@ func (o *TraceOperation) Exec(tx *gorm.DB) error {
 		}
 	}
 
+	lastSavepoint = curEpoch
 	return nil
 }
 
