@@ -217,7 +217,7 @@ func (t *TraceProcessor) buildLogs(receipts []types.TransactionReceipt, blockTim
 		log.Count = logCounter.GetCount(entry.Key)
 		cfxLog := &model.CfxLog{
 			Epoch:         log.ID,
-			BlockPosition: int8(blockIndex),
+			BlockPosition: int16(blockIndex),
 			Log:           *log,
 		}
 		cfxLog.ID = 0
@@ -288,7 +288,7 @@ func (t *TraceProcessor) Process(data coreUtil.EpochData) dbUtil.Operation {
 		cfxBlock := model.CfxBlock{
 			Epoch:    block.EpochNumber.ToInt().Uint64(),
 			Block:    dbBlock,
-			Position: idx,
+			Position: int16(idx),
 		}
 		blockArr = append(blockArr, cfxBlock)
 	}
@@ -418,7 +418,7 @@ func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, b
 	var tx2d = make([][]*model.CfxTx, len(receipts))
 	var blockTxInfo = make([]int, len(receipts))
 	for idx, receipt := range receipts {
-		arr, err := buildTxFromReceipt(db, receipt, int8(idx), blockTime)
+		arr, err := buildTxFromReceipt(db, receipt, int16(idx), blockTime)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -428,7 +428,7 @@ func buildTxFromReceiptArr(db *gorm.DB, receipts [][]types.TransactionReceipt, b
 	}
 	return txs, tx2d, nil
 }
-func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockPos int8, blockTime time.Time) ([]*model.CfxTx, error) {
+func buildTxFromReceipt(db *gorm.DB, receipts []types.TransactionReceipt, blockPos int16, blockTime time.Time) ([]*model.CfxTx, error) {
 	var txArr []*model.CfxTx
 	for txIdx, receipt := range receipts {
 		status := uint64(receipt.OutcomeStatus)

@@ -42,8 +42,9 @@ type EvmBlock struct {
 }
 
 type CfxBlock struct {
-	Epoch    uint64 `gorm:"not null;index:uk_epoch_position,unique" json:"epoch"`
-	Position int    `gorm:"not null;index:uk_epoch_position,unique" json:"position"`
+	Epoch uint64 `gorm:"not null;index:uk_epoch_position,unique" json:"epoch"`
+	//net 1, epoch 3290913 has 200 blocks
+	Position int16 `gorm:"not null;index:uk_epoch_position,unique" json:"position"`
 	Block
 }
 
@@ -62,7 +63,7 @@ type EvmTx struct {
 
 type CfxTx struct {
 	Epoch         uint64 `gorm:"not null;index:uk_ebt,unique" json:"epoch"`
-	BlockPosition int8   `gorm:"not null;index:uk_ebt,unique" json:"blockPosition"`
+	BlockPosition int16  `gorm:"not null;index:uk_ebt,unique" json:"blockPosition"`
 	TxPosition    int16  `gorm:"not null;index:uk_ebt,unique" json:"txPosition"`
 	BaseTx
 }
@@ -140,7 +141,7 @@ type EvmLog struct {
 
 type CfxLog struct {
 	Epoch         uint64 `gorm:"not null;index:idx_epoch" json:"epoch"`
-	BlockPosition int8   `gorm:"not null" json:"blockPosition"`
+	BlockPosition int16  `gorm:"not null" json:"blockPosition"`
 	Log
 }
 
