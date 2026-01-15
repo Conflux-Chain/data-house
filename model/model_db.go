@@ -91,8 +91,8 @@ type EvmTrace struct {
 }
 
 type CfxTrace struct {
+	Epoch uint64 `gorm:"not null:index:idx_epoch" json:"epoch"`
 	Trace
-	Epoch      uint64 `gorm:"not null:index:idx_epoch" json:"epoch"`
 	FromPocket string `gorm:"size:64;not null" json:"fromPocket"`
 	ToPocket   string `gorm:"size:64;not null" json:"toPocket"`
 	FromSpace  string `gorm:"size:64;not null" json:"fromSpace"`
