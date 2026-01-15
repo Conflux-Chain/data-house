@@ -4,7 +4,7 @@ go 1.23.10
 
 require (
 	github.com/Conflux-Chain/go-conflux-sdk v1.6.1
-	github.com/Conflux-Chain/go-conflux-util v0.6.9-0.20260113061657-26e392dc1b24
+	github.com/Conflux-Chain/go-conflux-util v0.6.9-0.20260114075026-62161dec3ad7
 	github.com/openweb3/web3go v0.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.3.1
