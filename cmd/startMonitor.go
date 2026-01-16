@@ -36,7 +36,12 @@ func startMonitor() {
 	db = storeConfig.MustOpenOrCreate(&model.KV{})
 
 	factory := func(router *gin.Engine) {
-		router.GET("/progress", middleware.Wrap(progress))
+		router.GET("/", middleware.Wrap(func(c *gin.Context) (any, error) {
+			return "data house api", nil
+		}))
+
+		grp := router.Group("/dh")
+		grp.GET("/progress", middleware.Wrap(progress))
 	}
 	api.MustServeFromViper(factory)
 
