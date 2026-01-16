@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Conflux-Chain/go-conflux-util/blockchain/sync/poll"
 	"github.com/sirupsen/logrus"
+	"strings"
 )
 
 // LoggingAdapter is a wrapper that adds structured logging to InnerAdapter.
@@ -73,10 +74,15 @@ func (a *LoggingAdapter[T]) GetBlockData(ctx context.Context, blockNumber uint64
 
 	data, err := a.inner.GetBlockData(ctx, blockNumber)
 	if err != nil {
-		logrus.WithError(err).Error("Failed to get block data ", blockNumber)
-		logEntry.WithError(err).WithFields(logrus.Fields{
-			"block_number": blockNumber,
-		}).Error("Failed to get block data")
+		strErr := err.Error()
+		if strings.HasSuffix(strErr, "timeout") {
+			//that's fine
+		} else {
+			logrus.WithError(err).Error("Failed to get block data ", blockNumber)
+			logEntry.WithError(err).WithFields(logrus.Fields{
+				"block_number": blockNumber,
+			}).Error("Failed to get block data")
+		}
 	}
 
 	return data, err
