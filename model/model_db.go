@@ -22,6 +22,16 @@ type Model struct {
 	UpdatedAt time.Time `gorm:"not null" json:"updatedAt"`
 }
 
+type KV struct {
+	Name    string `gorm:"unique" json:"name"`
+	Content string `gorm:"size:1024" json:"content"`
+	Model
+}
+
+const (
+	KvBlock = "block"
+)
+
 type Address struct {
 	Model
 	// hex or non-verbose base32
