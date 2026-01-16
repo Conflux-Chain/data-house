@@ -49,14 +49,26 @@ func startMonitor() {
 }
 
 func progress(c *gin.Context) (any, error) {
-	return getSyncProgress(db)
+	pre := progressData
+	cur, err := getSyncProgress(db)
+	if len(pre) > 0 && len(pre) == len(cur) {
+		for i, p := range pre {
+			cur[i].Growth = cur[i].BlockNum - p.Growth
+		}
+	}
+	return cur, err
 }
 
 type ChainLatestBlock struct {
 	ChainID   string    `json:"chain_id"`
 	BlockNum  uint64    `json:"block_num"`
+	Growth    uint64    `json:"growth"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+var (
+	progressData []ChainLatestBlock
+)
 
 func getSyncProgress(db *gorm.DB) ([]ChainLatestBlock, error) {
 	sql := `
@@ -71,7 +83,7 @@ func getSyncProgress(db *gorm.DB) ([]ChainLatestBlock, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "get sync progress")
 	}
-
+	progressData = results
 	return results, nil
 }
 
