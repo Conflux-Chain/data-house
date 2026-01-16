@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  data1029:
+    image: ubuntu:22.04  # 或 alpine:latest 更轻量
+    container_name: data1029
+    restart: unless-stopped
+    volumes:
+      - ./:/app  # 挂载包含 bash 脚本和 bin 文件的目录
+    working_dir: /app  # 设置工作目录
+    command: ["bash", "1029.sh"]
