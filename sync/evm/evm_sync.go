@@ -139,6 +139,7 @@ func (t *TraceProcessor) convertTrace(dbTrace *model.EvmTrace, from string, to s
 	dbTrace.FromId = fromAddr.ID
 	dbTrace.ToId = toAddr.ID
 	dbTrace.Value = decimal.NewFromBigInt(value, -18)
+	dbTrace.Model.CreatedAt = blockTime
 
 	return nil
 }
