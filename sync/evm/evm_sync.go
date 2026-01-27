@@ -177,7 +177,10 @@ func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Tim
 			}
 
 			paramLen := len(log.Topics)
-			errArr := make([]error, paramLen-1)
+			var errArr []error
+			if paramLen > 0 {
+				errArr = make([]error, paramLen-1)
+			}
 			switch paramLen {
 			case 4:
 				paramBean, err := model.MakeLogParamId(t.db, log.Topics[3].Hex(), blockTime)
