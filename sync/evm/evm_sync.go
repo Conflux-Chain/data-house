@@ -150,9 +150,13 @@ func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Tim
 
 	for _, receipt := range receipts {
 		for _, log := range receipt.Logs {
-			topicBean, err := model.MakeTopicId(t.db, log.Topics[0].Hex(), blockTime)
-			if err != nil {
-				return nil, errors.Wrap(err, "create topic bean")
+			var topicId = uint64(0)
+			if len(log.Topics) > 0 {
+				topicBean, err := model.MakeTopicId(t.db, log.Topics[0].Hex(), blockTime)
+				if err != nil {
+					return nil, errors.Wrap(err, "create topic bean")
+				}
+				topicId = topicBean.ID
 			}
 			addrBean, err := model.MakeAddrId(t.db, log.Address.Hex(), blockTime)
 			if err != nil {
@@ -162,7 +166,7 @@ func (t *TraceProcessor) buildLogs(receipts []*types.Receipt, blockTime time.Tim
 			logBean := &model.EvmLog{
 				BlockNum: receipt.BlockNumber,
 				Log: model.Log{
-					TopicId:    topicBean.ID,
+					TopicId:    topicId,
 					TxIndex:    log.TxIndex,
 					ContractId: addrBean.ID,
 					Model: model.Model{
