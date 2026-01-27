@@ -404,7 +404,7 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig
 	lastSavepoint = nextBlockNumber - 1
 	paramsDB.NextBlockNumber = nextBlockNumber
 	paramsDB.DB = db
-	adapter, errAd := evmUtil.NewAdapterWithConfig(evmCfg.AdapterConfig)
+	adapter, errAd := common.NewEvmAdapterWithConfig(evmCfg.AdapterConfig)
 	if errAd != nil {
 		return errAd
 	}
