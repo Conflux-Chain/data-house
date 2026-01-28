@@ -41,7 +41,7 @@ func NewEvmAdapterWithConfig(config evm.AdapterConfig) (*EvmAdapter, error) {
 		return nil, errors.New("URL not specified")
 	}
 
-	return NewEvmAdapter(config.URL, config.Option)
+	return NewEvmAdapter(config.URL, config.AdapterOption)
 }
 
 // Close closes the underlying RPC client.

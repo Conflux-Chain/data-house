@@ -520,10 +520,10 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, cfxCfg *common.CfxConfig
 }
 
 func (t *TraceProcessor) prepareEpoch0(ctx context.Context, cfxCfg *common.CfxConfig) {
-	if cfxCfg.AdapterConfig.Option.IgnoreTraces {
+	if cfxCfg.AdapterConfig.AdapterOption.IgnoreTraces {
 		return
 	}
-	cfxCfg.AdapterConfig.Option.IgnoreTraces = true
+	cfxCfg.AdapterConfig.AdapterOption.IgnoreTraces = true
 	adapter, errAd := coreUtil.NewAdapterWithConfig(cfxCfg.AdapterConfig)
 	if errAd != nil {
 		logrus.Fatal("failed to init adapter", errAd)
@@ -548,7 +548,7 @@ func (t *TraceProcessor) prepareEpoch0(ctx context.Context, cfxCfg *common.CfxCo
 		logrus.Fatal(err)
 	}
 
-	cfxCfg.AdapterConfig.Option.IgnoreTraces = false
+	cfxCfg.AdapterConfig.AdapterOption.IgnoreTraces = false
 }
 
 func calculateNextBlockNo(db *gorm.DB, cfxCfg *common.CfxConfig) (uint64, error) {
