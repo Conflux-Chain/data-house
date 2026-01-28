@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	"github.com/Conflux-Chain/go-conflux-util/blockchain/sync/poll"
 	"github.com/sirupsen/logrus"
 	"strings"
@@ -15,6 +16,7 @@ type LoggingAdapter[T any] struct {
 	logger *logrus.Logger
 	// component identifies the logging component
 	component string
+	CfxClient *sdk.Client
 }
 
 // NewLoggingAdapter creates a new LoggingAdapter with the given inner adapter.

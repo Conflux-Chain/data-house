@@ -3,6 +3,7 @@ package cfx
 import (
 	"context"
 	"fmt"
+	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	"github.com/sirupsen/logrus"
 	"math/big"
 	"sync"
@@ -497,7 +498,12 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, cfxCfg *common.CfxConfig
 	if errAd != nil {
 		return errAd
 	}
+	cfxClient, err := sdk.NewClient(cfxCfg.AdapterConfig.URL, sdk.ClientOption{})
+	if err != nil {
+		return err
+	}
 	logAdapter := common.NewLoggingAdapter[coreUtil.EpochData](adapter, nil, "coreSync")
+	logAdapter.CfxClient = cfxClient
 	paramsDB.Adapter = logAdapter
 
 	if nextBlockNumber == 0 {
