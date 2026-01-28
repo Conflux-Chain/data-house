@@ -1,11 +1,10 @@
-package common
+package evm2
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/Conflux-Chain/go-conflux-util/blockchain/sync/evm"
-	"github.com/Conflux-Chain/go-conflux-util/blockchain/sync/poll"
 	"github.com/mcuadros/go-defaults"
 	providers "github.com/openweb3/go-rpc-provider/provider_wrapper"
 	"github.com/openweb3/web3go"
@@ -13,16 +12,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-var _ poll.Adapter[evm.BlockData] = (*Adapter)(nil)
-
-// Adapter implements the poll.Adapter[T] interface to poll data from evm RPC.
-type Adapter struct {
+// EvmAdapter implements the poll.Adapter[T] interface to poll data from evm RPC.
+type EvmAdapter struct {
 	option evm.AdapterOption
 
 	client *web3go.Client
 }
 
-func NewAdapter(url string, option evm.AdapterOption) (*Adapter, error) {
+func NewEvmAdapter(url string, option evm.AdapterOption) (*EvmAdapter, error) {
 	defaults.SetDefaults(&option)
 
 	clientOption := web3go.ClientOption{
@@ -36,24 +33,24 @@ func NewAdapter(url string, option evm.AdapterOption) (*Adapter, error) {
 		return nil, errors.WithMessage(err, "Failed to create client")
 	}
 
-	return &Adapter{option, client}, nil
+	return &EvmAdapter{option, client}, nil
 }
 
-func NewEvmAdapterWithConfig(config evm.AdapterConfig) (*Adapter, error) {
+func NewEvmAdapterWithConfig(config evm.AdapterConfig) (*EvmAdapter, error) {
 	if len(config.URL) == 0 {
 		return nil, errors.New("URL not specified")
 	}
 
-	return NewAdapter(config.URL, config.Option)
+	return NewEvmAdapter(config.URL, config.Option)
 }
 
 // Close closes the underlying RPC client.
-func (adapter *Adapter) Close() {
+func (adapter *EvmAdapter) Close() {
 	adapter.client.Close()
 }
 
 // GetFinalizedBlockNumber implements the poll.Adapter[T] interface.
-func (adapter *Adapter) GetFinalizedBlockNumber(ctx context.Context) (uint64, error) {
+func (adapter *EvmAdapter) GetFinalizedBlockNumber(ctx context.Context) (uint64, error) {
 	block, err := adapter.client.WithContext(ctx).Eth.BlockByNumber(types.FinalizedBlockNumber, false)
 	if err != nil {
 		return 0, err
@@ -63,7 +60,7 @@ func (adapter *Adapter) GetFinalizedBlockNumber(ctx context.Context) (uint64, er
 }
 
 // GetLatestBlockNumber implements the poll.Adapter[T] interface.
-func (adapter *Adapter) GetLatestBlockNumber(ctx context.Context) (uint64, error) {
+func (adapter *EvmAdapter) GetLatestBlockNumber(ctx context.Context) (uint64, error) {
 	block, err := adapter.client.WithContext(ctx).Eth.BlockByNumber(types.BlockNumber(adapter.option.LatestBlockNumberTag), false)
 	if err != nil {
 		return 0, err
@@ -78,7 +75,7 @@ func (adapter *Adapter) GetLatestBlockNumber(ctx context.Context) (uint64, error
 }
 
 // GetBlockData implements the poll.Adapter[T] interface.
-func (adapter *Adapter) GetBlockData(ctx context.Context, blockNumber uint64) (evm.BlockData, error) {
+func (adapter *EvmAdapter) GetBlockData(ctx context.Context, blockNumber uint64) (evm.BlockData, error) {
 	var data evm.BlockData
 
 	bn := types.BlockNumber(blockNumber)
@@ -176,11 +173,11 @@ func queryReceipts(data *evm.BlockData, client *web3go.Client, blockNumber types
 }
 
 // GetBlockHash implements the poll.Adapter[T] interface.
-func (adapter *Adapter) GetBlockHash(data evm.BlockData) string {
+func (adapter *EvmAdapter) GetBlockHash(data evm.BlockData) string {
 	return data.Block.Hash.Hex()
 }
 
 // GetParentBlockHash implements the poll.Adapter[T] interface.
-func (adapter *Adapter) GetParentBlockHash(data evm.BlockData) string {
+func (adapter *EvmAdapter) GetParentBlockHash(data evm.BlockData) string {
 	return data.Block.ParentHash.Hex()
 }

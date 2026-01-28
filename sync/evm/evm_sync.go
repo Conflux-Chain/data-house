@@ -3,6 +3,7 @@ package evm
 import (
 	"context"
 	"fmt"
+	evm2 "github.com/Conflux-Chain/data-house/common/evm"
 	"math/big"
 	"sync"
 	"time"
@@ -96,7 +97,7 @@ func (o *TraceOperation) _exec(tx *gorm.DB) error {
 		trace.TxId = o.txArr[trace.TransactionPosition].ID
 	}
 
-	if len(o.txArr) > 0 {
+	if len(o.traceArr) > 0 {
 		if err := tx.CreateInBatches(&o.traceArr, batchSize).Error; err != nil {
 			return errors.Wrap(err, "create trace")
 		}
@@ -404,7 +405,7 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, evmCfg *common.EvmConfig
 	lastSavepoint = nextBlockNumber - 1
 	paramsDB.NextBlockNumber = nextBlockNumber
 	paramsDB.DB = db
-	adapter, errAd := common.NewEvmAdapterWithConfig(evmCfg.AdapterConfig)
+	adapter, errAd := evm2.NewEvmAdapterWithConfig(evmCfg.AdapterConfig)
 	if errAd != nil {
 		return errAd
 	}
