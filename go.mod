@@ -7,8 +7,8 @@ require (
 	github.com/Conflux-Chain/go-conflux-util v0.7.1
 	github.com/gin-gonic/gin v1.8.1
 	github.com/mcuadros/go-defaults v1.2.0
-	github.com/openweb3/go-rpc-provider v0.3.5
-	github.com/openweb3/web3go v0.3.0
+	github.com/openweb3/go-rpc-provider v0.3.6
+	github.com/openweb3/web3go v0.3.1
 	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.3.1
 	github.com/sirupsen/logrus v1.9.3
