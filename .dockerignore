@@ -1,0 +1,11 @@
+.git
+.github
+.agents
+.codex
+.aws
+data-house
+*.sh
+Dockerfile
+docker-compose.yaml
+.env
+README.md
