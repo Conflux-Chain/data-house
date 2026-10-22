@@ -27,6 +27,9 @@ go.work.sum
 # env file
 .env
 
+# Local build output
+data-house
+
 # Editor/IDE
 # .idea/
 # .vscode/
