@@ -15,6 +15,7 @@ RUN apt-get update \
     && useradd --system --uid 10001 --create-home datahouse
 
 COPY --from=build /out/data-house /usr/local/bin/data-house
+COPY --chown=datahouse:datahouse config.yaml /home/datahouse/config.yaml
 USER datahouse
 WORKDIR /home/datahouse
 
