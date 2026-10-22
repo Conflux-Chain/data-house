@@ -18,7 +18,7 @@ The per-service database names, adapter URLs, alert tags, and EVM starting block
 Start all services in the background:
 
 ```sh
-docker compose --env-file .env up --build -d
+docker compose up --build -d
 ```
 
 Start one service with its corresponding configuration:
@@ -31,14 +31,14 @@ Start one service with its corresponding configuration:
 ./monitor.sh
 ```
 
-The scripts read `.env` and run the matching Compose service. They keep the logs attached. To start one service in the background, use `docker compose --env-file .env up --build -d net1029`.
+The scripts read `.env` and run the matching Compose service. They keep the logs attached. To start one service in the background, use `docker compose up --build -d net1029`.
 
 The monitor API is available at `http://localhost:${DH_MONITOR_PORT:-8080}/dh/progress`.
 
 ## Inspect and stop
 
 ```sh
-docker compose --env-file .env ps
-docker compose --env-file .env logs -f net1029
-docker compose --env-file .env down
+docker compose ps
+docker compose logs -f net1029
+docker compose down
 ```

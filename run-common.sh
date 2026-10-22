@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${DH_ENV_FILE:-$ROOT_DIR/.env}"
+ENV_FILE="$ROOT_DIR/.env"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   printf 'Missing %s. Copy .env.example to .env and set the private values.\n' "$ENV_FILE" >&2
@@ -11,5 +11,5 @@ fi
 
 run_service() {
   local service="$1"
-  docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.yaml" up --build "$service"
+  (cd "$ROOT_DIR" && docker compose up --build "$service")
 }
