@@ -14,8 +14,6 @@ x-sync-service: &sync-service
     context: .
   image: data-house:local
   restart: unless-stopped
-  env_file:
-    - .env
   extra_hosts:
     - "host.docker.internal:host-gateway"
 

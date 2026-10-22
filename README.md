@@ -31,7 +31,7 @@ Start one service with its corresponding configuration:
 ./monitor.sh
 ```
 
-The scripts read `.env` and run the matching Compose service. They keep the logs attached. To start one service in the background, use `docker compose up --build -d net1029`.
+The scripts read the root `.env` through Docker Compose and run the matching service. Only the variables declared for that service are passed to the container, which avoids leaking unrelated service configuration. The scripts keep the logs attached. To start one service in the background, use `docker compose up --build -d net1029`.
 
 The monitor API is available at `http://localhost:${DH_MONITOR_PORT:-8080}/dh/progress`.
 
