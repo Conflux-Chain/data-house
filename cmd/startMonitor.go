@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
 	"github.com/Conflux-Chain/data-house/model"
 	"github.com/Conflux-Chain/go-conflux-util/api"
 	"github.com/Conflux-Chain/go-conflux-util/api/middleware"
@@ -30,6 +31,16 @@ var db *gorm.DB
 func startMonitor() {
 	_, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
+
+	apiEndpoint := os.Getenv("DH_API_ENDPOINT")
+	if apiEndpoint == "" {
+		apiEndpoint = "0.0.0.0:12345"
+	}
+	hostPort := os.Getenv("DH_MONITOR_PORT")
+	if hostPort == "" {
+		hostPort = "12345"
+	}
+	fmt.Printf("monitor API listening on %s; host access: http://127.0.0.1:%s/dh/progress\n", apiEndpoint, hostPort)
 
 	storeConfig := store.MustNewConfigFromViper()
 

@@ -494,6 +494,8 @@ func StartSync(ctx context.Context, wg *sync.WaitGroup, cfxCfg *common.CfxConfig
 		return err
 	}
 	paramsDB.DB = db
+	cfxCfg.AdapterConfig.RequestTimeout = time.Second * 30
+	logrus.Info("timeout is ", cfxCfg.AdapterConfig.RequestTimeout)
 	adapter, errAd := coreUtil.NewAdapterWithConfig(cfxCfg.AdapterConfig)
 	if errAd != nil {
 		return errAd

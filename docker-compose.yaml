@@ -69,3 +69,6 @@ services:
     environment:
       <<: *sync-env
       DH_ALERT_CUSTOMTAGS: ${DH_ALERT_CUSTOMTAGS_MONITOR:-data-house-net1029-svc}
+      DH_STORE_MYSQL_DATABASE: ${DH_STORE_MYSQL_DATABASE_MONITOR:-data_net1}
+      DH_API_ENDPOINT: ${DH_API_ENDPOINT:-0.0.0.0:8080}
+      DH_MONITOR_PORT: ${DH_MONITOR_PORT:-8080}
